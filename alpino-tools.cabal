@@ -7,8 +7,8 @@ Author:		Daniël de Kok <me@danieldk.eu>
 Maintainer:	Daniël de Kok <me@danieldk.eu>
 Homepage:	http://github.com/danieldk/tinker-hs
 Category:	Data
-Synopsis:	Alpino tools
-Description:	Alpino tools
+Synopsis:	Alpino data manipulation tools
+Description:	Tools for manipulating data for the Alpino parser for Dutch.
 Cabal-Version:	>= 1.2
 Build-Type:	Simple
 
