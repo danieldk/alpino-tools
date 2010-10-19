@@ -18,7 +18,7 @@ main = do
                 Normalized   -> scoreToBinaryNorm
                 UnNormalized -> scoreToBinary
     
-  run_ $ lineEnum $$ joinI $ instanceParser $$ joinI $ groupBy $$
+  run_ $ lineEnum $$ joinI $ instanceParser $$ joinI $ groupByKey $$
        joinI $ score $$ joinI $ concat $$
        joinI $ instanceGenerator $$ printByteString
 

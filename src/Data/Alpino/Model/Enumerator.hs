@@ -1,5 +1,6 @@
 module Data.Alpino.Model.Enumerator ( concat,
                                       groupBy,
+                                      groupByKey,
                                       instanceGenerator,
                                       instanceParser,
                                       lineEnum,
@@ -17,6 +18,27 @@ import qualified Data.ByteString.UTF8 as BU
 import qualified Data.Enumerator as E
 import Data.Enumerator hiding (isEOF, map)
 import System.IO (isEOF)
+
+-- | Enumerator grouping chunks according to an equality function.
+groupBy :: (Monad m, Eq a) => (a -> a -> Bool) ->
+           Enumeratee a [a] m b
+groupBy f = loop
+    where loop (Continue k) = do
+            h <- peek
+            case h of
+              Nothing -> return $ Continue k
+              Just h -> do
+                     xs <- E.span $ f h
+                     newStep <- lift $ runIteratee $ k $ Chunks [xs]
+                     loop newStep
+          loop step = return step
+
+-- | Group training instances by key.
+groupByKey :: (Monad m) =>
+           Enumeratee AM.TrainingInstance [AM.TrainingInstance] m b
+groupByKey = groupBy keyEq
+    where keyEq i1 i2 = AM.instanceType i1 == AM.instanceType i2 &&
+                        AM.key i1 == AM.key i2
 
 -- | Enumeratee that converts ByteStrings to TrainingInstances.
 instanceParser :: (Monad m) =>
@@ -39,22 +61,6 @@ lineEnum = Iteratee . loop
                        line <- liftIO B.getLine
                        runIteratee (k (Chunks [line])) >>= loop
           loop step = return step
-
--- | Group training instances by type and key.
-groupBy :: (Monad m) =>
-                  Enumeratee AM.TrainingInstance [AM.TrainingInstance] m b
-groupBy = loop
-    where loop (Continue k) = do
-            h <- peek
-            case h of
-              Nothing -> return $ Continue k
-              Just h -> do
-                     xs <- E.span $ keyEq h
-                     newStep <- lift $ runIteratee $ k $ Chunks [xs]
-                     loop newStep
-          loop step = return step
-          keyEq i1 i2 = AM.instanceType i1 == AM.instanceType i2 &&
-                                 AM.key i1 == AM.key i2
 
 -- | Enumeratee concatenating lists.
 concat :: (Monad m) =>
