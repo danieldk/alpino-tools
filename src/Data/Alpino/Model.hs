@@ -2,6 +2,7 @@ module Data.Alpino.Model ( TrainingInstance(..),
                            TrainingInstanceType(..),
                            bsToTrainingInstance,
                            scoreToBinary,
+                           scoreToBinaryNorm,
                            trainingInstanceToBs
                          ) where
 
@@ -65,4 +66,13 @@ scoreToBinary ctx = map (rescoreEvt maxScore) ctx
     where maxScore = foldl (\acc e -> max acc $ score e) 0.0 ctx
           rescoreEvt maxScore evt
             | score evt == maxScore = evt { score = 1.0 }
+            | otherwise = evt { score = 0.0 }
+
+scoreToBinaryNorm :: [TrainingInstance] -> [TrainingInstance]
+scoreToBinaryNorm ctx = map (rescoreEvt maxScore) ctx
+    where maxScore = foldl (\acc e -> max acc $ score e) 0.0 ctx
+          numMax = length . filter (\e -> score e == maxScore) $ ctx
+          bestScore = 1.0 / fromIntegral numMax
+          rescoreEvt maxScore evt
+            | score evt == maxScore = evt { score = bestScore }
             | otherwise = evt { score = 0.0 }

@@ -4,7 +4,8 @@ module Data.Alpino.Model.Enumerator ( concat,
                                       instanceParser,
                                       lineEnum,
                                       printByteString,
-                                      scoreToBinary
+                                      scoreToBinary,
+                                      scoreToBinaryNorm
                                     ) where
 
 import Prelude hiding (concat)
@@ -71,5 +72,9 @@ printByteString = continue step
           step EOF = yield () EOF
 
 scoreToBinary :: (Monad m) =>
-              Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
+                 Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
 scoreToBinary = E.map AM.scoreToBinary
+
+scoreToBinaryNorm :: (Monad m) =>
+                     Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
+scoreToBinaryNorm = E.map AM.scoreToBinaryNorm
