@@ -20,8 +20,6 @@ Library
   HS-Source-Dirs:       src
   Ghc-Options:		-O2
 
-Executable model_to_binary
-  Executable:           model_to_binary
+Executable at_rescore_data
   HS-Source-Dirs:       src
-  main-is:              model_to_binary.hs
-
+  main-is:              rescore_data.hs

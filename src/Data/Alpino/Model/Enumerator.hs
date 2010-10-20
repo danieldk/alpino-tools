@@ -6,7 +6,8 @@ module Data.Alpino.Model.Enumerator ( concat,
                                       lineEnum,
                                       printByteString,
                                       scoreToBinary,
-                                      scoreToBinaryNorm
+                                      scoreToBinaryNorm,
+                                      scoreToNorm
                                     ) where
 
 import Prelude hiding (concat)
@@ -93,3 +94,9 @@ scoreToBinary = E.map AM.scoreToBinary
 scoreToBinaryNorm :: (Monad m) =>
                      Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
 scoreToBinaryNorm = E.map AM.scoreToBinaryNorm
+
+-- | Enumerator that normalized instance scores over all instances
+-- | in the list.
+scoreToNorm :: (Monad m) =>
+               Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
+scoreToNorm = E.map AM.scoreToNorm

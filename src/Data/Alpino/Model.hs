@@ -3,6 +3,7 @@ module Data.Alpino.Model ( TrainingInstance(..),
                            bsToTrainingInstance,
                            scoreToBinary,
                            scoreToBinaryNorm,
+                           scoreToNorm,
                            trainingInstanceToBs
                          ) where
 
@@ -86,3 +87,9 @@ scoreToBinaryNorm ctx = map (rescoreEvt maxScore) ctx
           rescoreEvt maxScore evt
             | score evt == maxScore = evt { score = bestScore }
             | otherwise = evt { score = 0.0 }
+
+-- | Normalize scores over all training instances.
+scoreToNorm :: [TrainingInstance] -> [TrainingInstance]
+scoreToNorm ctx = map (rescoreEvt norm) ctx
+    where norm = sum $ map score ctx
+          rescoreEvt norm evt = evt { score = (score evt) / norm }
