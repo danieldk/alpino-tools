@@ -1,6 +1,7 @@
 module Data.Alpino.Model ( TrainingInstance(..),
                            TrainingInstanceType(..),
                            bsToTrainingInstance,
+                           filterFeatures,
                            scoreToBinary,
                            scoreToBinaryNorm,
                            scoreToNorm,
@@ -12,7 +13,8 @@ import Data.ByteString.Internal (c2w)
 import Data.ByteString.Lex.Double (readDouble)
 import qualified Data.ByteString.UTF8 as BU
 import Data.Maybe (fromJust)
-
+import qualified Data.Set as Set
+import Text.Printf (printf)
 
 -- | A training instance.
 data TrainingInstance = TrainingInstance {
@@ -20,13 +22,18 @@ data TrainingInstance = TrainingInstance {
       key          :: B.ByteString,         -- ^ Training instance identifier
       n            :: B.ByteString,
       score        :: Double,               -- ^ Quality score
-      features     :: B.ByteString          -- ^ Features
+      features     :: [FeatureValue]        -- ^ Features
 } deriving (Show, Eq)
 
 -- | Type of training instance (parsing or generation)
 data TrainingInstanceType =
     ParsingInstance | GenerationInstance
     deriving (Show, Eq)
+
+data FeatureValue = FeatureValue {
+      feature :: B.ByteString,
+      value   :: Double
+} deriving (Show, Eq)
 
 -- | Read a training instance from a ByteString.
 bsToTrainingInstance :: B.ByteString -> TrainingInstance
@@ -37,19 +44,15 @@ bsToTrainingInstance l =
           key = lineParts !! 1
           n = lineParts !! 2
           score = fst . fromJust . readDouble $ lineParts !! 3
-          features = lineParts !! 4
+          features = bsToFeatureValue $ lineParts !! 4
 
 -- | Convert a training instance to a ByteString.
 trainingInstanceToBs :: TrainingInstance -> B.ByteString
-trainingInstanceToBs i = B.append typeBS $ B.append fieldSep $
-                         B.append keyBS $ B.append fieldSep $
-                         B.append nBS $ B.append fieldSep $
-                         B.append scoreBS $ B.append fieldSep featuresBS
-    where typeBS = typeToBS $ instanceType i
-          keyBS = key i
-          nBS = n i
-          scoreBS = BU.fromString . show $ score i
-          featuresBS = features i
+trainingInstanceToBs (TrainingInstance instType keyBS nBS sc fvals) =
+    B.intercalate fieldSep [typeBS, keyBS, nBS, scoreBS, fValsBS]
+    where typeBS = typeToBS instType
+          scoreBS = BU.fromString $ printf "%f" sc
+          fValsBS = featureValueToBs fvals
           fieldSep = BU.fromString "#"
 
 instanceFieldSep = c2w '#'
@@ -59,13 +62,32 @@ bsToType bs
     | bs == parseMarker = ParsingInstance
     | bs == generationMarker = GenerationInstance
 
-parseMarker = BU.fromString "P"
-generationMarker = BU.fromString "G"
-
 typeToBS :: TrainingInstanceType -> B.ByteString
 typeToBS instanceType
     | instanceType == ParsingInstance = parseMarker
     | instanceType == GenerationInstance = generationMarker
+
+parseMarker = BU.fromString "P"
+generationMarker = BU.fromString "G"
+
+bsToFeatureValue :: B.ByteString -> [FeatureValue]
+bsToFeatureValue = map fVal . B.split fieldSep
+    where fVal p = FeatureValue f (fst $ fromJust $ readDouble valBs)
+              where [valBs, f] = B.split fValSep p
+          fieldSep = c2w '|'
+          fValSep = c2w '@'
+
+featureValueToBs :: [FeatureValue] -> B.ByteString
+featureValueToBs = B.intercalate fieldSep . map toBs
+    where toBs (FeatureValue f val) = B.intercalate fValSep
+                                      [BU.fromString $ printf "%f" val, f]
+          fieldSep = BU.fromString "|" 
+          fValSep  = BU.fromString "@"
+
+filterFeatures :: Set.Set B.ByteString -> TrainingInstance ->
+                  TrainingInstance
+filterFeatures keepFeatures i = i { features = filter keep $ features i}
+    where keep fv = Set.member (feature fv) keepFeatures
 
 -- | Convert the quality scores to binary scores. The instances
 -- | with the highest quality score get score 1.0, other instances

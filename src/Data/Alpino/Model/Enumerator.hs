@@ -1,6 +1,7 @@
 module Data.Alpino.Model.Enumerator ( concat,
                                       groupBy,
                                       groupByKey,
+                                      filterFeatures,
                                       instanceGenerator,
                                       instanceParser,
                                       lineEnum,
@@ -18,7 +19,12 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as BU
 import qualified Data.Enumerator as E
 import Data.Enumerator hiding (isEOF, map)
+import qualified Data.Set as Set
 import System.IO (isEOF)
+
+filterFeatures :: (Monad m) =>  Set.Set B.ByteString ->
+                  Enumeratee AM.TrainingInstance AM.TrainingInstance m b
+filterFeatures keepFeatures = E.map (AM.filterFeatures keepFeatures)
 
 -- | Enumerator grouping chunks according to an equality function.
 groupBy :: (Monad m, Eq a) => (a -> a -> Bool) ->
