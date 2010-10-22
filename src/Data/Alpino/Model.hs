@@ -2,6 +2,7 @@ module Data.Alpino.Model ( TrainingInstance(..),
                            TrainingInstanceType(..),
                            bsToTrainingInstance,
                            filterFeatures,
+                           filterFeaturesFunctor,
                            scoreToBinary,
                            scoreToBinaryNorm,
                            scoreToNorm,
@@ -88,6 +89,13 @@ filterFeatures :: Set.Set B.ByteString -> TrainingInstance ->
                   TrainingInstance
 filterFeatures keepFeatures i = i { features = filter keep $ features i}
     where keep fv = Set.member (feature fv) keepFeatures
+
+filterFeaturesFunctor :: Set.Set B.ByteString -> TrainingInstance ->
+                         TrainingInstance
+filterFeaturesFunctor keepFeatures i = i { features = filter keep $ features i}
+    where keep fv = Set.member (functor $ feature fv) keepFeatures
+          functor f = B.split argOpen f !! 0
+          argOpen = c2w '('
 
 -- | Convert the quality scores to binary scores. The instances
 -- | with the highest quality score get score 1.0, other instances

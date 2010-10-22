@@ -2,6 +2,7 @@ module Data.Alpino.Model.Enumerator ( concat,
                                       groupBy,
                                       groupByKey,
                                       filterFeatures,
+                                      filterFeaturesFunctor,
                                       instanceGenerator,
                                       instanceParser,
                                       lineEnum,
@@ -25,6 +26,11 @@ import System.IO (isEOF)
 filterFeatures :: (Monad m) =>  Set.Set B.ByteString ->
                   Enumeratee AM.TrainingInstance AM.TrainingInstance m b
 filterFeatures keepFeatures = E.map (AM.filterFeatures keepFeatures)
+
+filterFeaturesFunctor :: (Monad m) =>  Set.Set B.ByteString ->
+                         Enumeratee AM.TrainingInstance AM.TrainingInstance m b
+filterFeaturesFunctor keepFeatures =
+    E.map (AM.filterFeaturesFunctor keepFeatures)
 
 -- | Enumerator grouping chunks according to an equality function.
 groupBy :: (Monad m, Eq a) => (a -> a -> Bool) ->
