@@ -40,7 +40,7 @@ filterFeaturesFunctor :: (Monad m) =>  Set.Set B.ByteString ->
 filterFeaturesFunctor keepFeatures =
     E.map (AM.filterFeaturesFunctor keepFeatures)
 
--- | Enumerator grouping chunks according to an equality function.
+-- | Enumeratee grouping chunks according to an equality function.
 groupBy :: (Monad m, Eq a) => (a -> a -> Bool) ->
            Enumeratee a [a] m b
 groupBy f = loop
@@ -83,8 +83,8 @@ lineEnum = Iteratee . loop
                        runIteratee (k (Chunks [line])) >>= loop
           loop step = return step
 
-filter :: (Monad m) => (a -> Bool) ->
-          Enumeratee a a m b
+-- | Enumeratee that filters with a predicate.
+filter :: (Monad m) => (a -> Bool) -> Enumeratee a a m b
 filter f = loop
     where loop = checkDone $ continue . step
           step k EOF = yield (Continue k) EOF
