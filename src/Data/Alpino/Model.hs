@@ -64,9 +64,8 @@ bsToType bs
     | bs == generationMarker = GenerationInstance
 
 typeToBS :: TrainingInstanceType -> B.ByteString
-typeToBS instanceType
-    | instanceType == ParsingInstance = parseMarker
-    | instanceType == GenerationInstance = generationMarker
+typeToBS ParsingInstance = parseMarker
+typeToBS GenerationInstance = generationMarker
 
 parseMarker = BU.fromString "P"
 generationMarker = BU.fromString "G"
