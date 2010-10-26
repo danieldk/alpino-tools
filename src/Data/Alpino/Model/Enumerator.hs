@@ -1,6 +1,8 @@
-module Data.Alpino.Model.Enumerator ( concat,
+module Data.Alpino.Model.Enumerator ( bestScore,
+                                      concat,
                                       groupBy,
                                       groupByKey,
+                                      filter,
                                       filterFeatures,
                                       filterFeaturesFunctor,
                                       instanceGenerator,
@@ -12,16 +14,22 @@ module Data.Alpino.Model.Enumerator ( concat,
                                       scoreToNorm
                                     ) where
 
-import Prelude hiding (concat)
+import Prelude hiding (concat, filter, head)
 import Control.Monad.IO.Class (MonadIO(..), liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Alpino.Model as AM
 import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as BU
 import qualified Data.Enumerator as E
-import Data.Enumerator hiding (isEOF, map)
+import Data.Enumerator hiding (isEOF, length, map)
+import Data.List (genericLength)
+import qualified Data.List as L
 import qualified Data.Set as Set
 import System.IO (isEOF)
+
+bestScore :: (Monad m) =>
+               Enumeratee [AM.TrainingInstance] Double m b
+bestScore = E.map AM.bestScore'
 
 filterFeatures :: (Monad m) =>  Set.Set B.ByteString ->
                   Enumeratee AM.TrainingInstance AM.TrainingInstance m b
@@ -74,6 +82,16 @@ lineEnum = Iteratee . loop
                        line <- liftIO B.getLine
                        runIteratee (k (Chunks [line])) >>= loop
           loop step = return step
+
+filter :: (Monad m) => (a -> Bool) ->
+          Enumeratee a a m b
+filter f = loop
+    where loop = checkDone $ continue . step
+          step k EOF = yield (Continue k) EOF
+          step k (Chunks []) = continue $ step k
+          step k (Chunks xs) = do
+            newStep <- lift $ runIteratee $ k $ Chunks $ L.filter f xs
+            loop newStep
 
 -- | Enumeratee concatenating lists.
 concat :: (Monad m) =>

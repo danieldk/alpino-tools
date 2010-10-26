@@ -30,3 +30,8 @@ Executable at_filter_data
   HS-Source-Dirs:       src
   main-is:              filter_data.hs
   Ghc-Options:		-O2
+
+Executable at_oracle
+  HS-Source-Dirs:       src
+  main-is:              oracle.hs
+  Ghc-Options:		-O2

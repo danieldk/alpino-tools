@@ -1,5 +1,7 @@
 module Data.Alpino.Model ( TrainingInstance(..),
                            TrainingInstanceType(..),
+                           bestScore,
+                           bestScore',
                            bsToTrainingInstance,
                            filterFeatures,
                            filterFeaturesFunctor,
@@ -13,6 +15,7 @@ import qualified Data.ByteString as B
 import Data.ByteString.Internal (c2w)
 import Data.ByteString.Lex.Double (readDouble)
 import qualified Data.ByteString.UTF8 as BU
+import Data.List (foldl')
 import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import Text.Printf (printf)
@@ -35,6 +38,13 @@ data FeatureValue = FeatureValue {
       feature :: B.ByteString,
       value   :: Double
 } deriving (Show, Eq)
+
+-- | Find the highest score of a context.
+bestScore :: [TrainingInstance] -> Double
+bestScore = foldl (\acc e -> max acc $ score e) 0.0
+
+bestScore' :: [TrainingInstance] -> Double
+bestScore' = foldl' (\acc e -> max acc $ score e) 0.0
 
 -- | Read a training instance from a ByteString.
 bsToTrainingInstance :: B.ByteString -> TrainingInstance
@@ -101,7 +111,7 @@ filterFeaturesFunctor keepFeatures i = i { features = filter keep $ features i}
 -- | get score 0.0.
 scoreToBinary :: [TrainingInstance] -> [TrainingInstance]
 scoreToBinary ctx = map (rescoreEvt maxScore) ctx
-    where maxScore = foldl (\acc e -> max acc $ score e) 0.0 ctx
+    where maxScore = bestScore ctx
           rescoreEvt maxScore evt
             | score evt == maxScore = evt { score = 1.0 }
             | otherwise = evt { score = 0.0 }
@@ -110,11 +120,11 @@ scoreToBinary ctx = map (rescoreEvt maxScore) ctx
 -- | quality scores.
 scoreToBinaryNorm :: [TrainingInstance] -> [TrainingInstance]
 scoreToBinaryNorm ctx = map (rescoreEvt maxScore) ctx
-    where maxScore = foldl (\acc e -> max acc $ score e) 0.0 ctx
+    where maxScore = bestScore ctx
           numMax = length . filter (\e -> score e == maxScore) $ ctx
-          bestScore = 1.0 / fromIntegral numMax
+          correctScore = 1.0 / fromIntegral numMax
           rescoreEvt maxScore evt
-            | score evt == maxScore = evt { score = bestScore }
+            | score evt == maxScore = evt { score = correctScore }
             | otherwise = evt { score = 0.0 }
 
 -- | Normalize scores over all training instances.
