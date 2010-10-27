@@ -94,15 +94,15 @@ featureValueToBs = B.intercalate fieldSep . map toBs
           fieldSep = BU.fromString "|" 
           fValSep  = BU.fromString "@"
 
-filterFeatures :: Set.Set B.ByteString -> TrainingInstance ->
+filterFeatures :: (Bool -> Bool) -> Set.Set B.ByteString -> TrainingInstance ->
                   TrainingInstance
-filterFeatures keepFeatures i = i { features = filter keep $ features i}
-    where keep fv = Set.member (feature fv) keepFeatures
+filterFeatures mod keepFeatures i = i { features = filter keep $ features i}
+    where keep fv = mod $ Set.member (feature fv) keepFeatures
 
-filterFeaturesFunctor :: Set.Set B.ByteString -> TrainingInstance ->
-                         TrainingInstance
-filterFeaturesFunctor keepFeatures i = i { features = filter keep $ features i}
-    where keep fv = Set.member (functor $ feature fv) keepFeatures
+filterFeaturesFunctor :: (Bool -> Bool) -> Set.Set B.ByteString ->
+                         TrainingInstance -> TrainingInstance
+filterFeaturesFunctor mod keepFeatures i = i { features = filter keep $ features i}
+    where keep fv = mod $ Set.member (functor $ feature fv) keepFeatures
           functor f = B.split argOpen f !! 0
           argOpen = c2w '('
 

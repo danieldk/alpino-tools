@@ -31,14 +31,14 @@ bestScore :: (Monad m) =>
                Enumeratee [AM.TrainingInstance] Double m b
 bestScore = E.map AM.bestScore'
 
-filterFeatures :: (Monad m) =>  Set.Set B.ByteString ->
+filterFeatures :: (Monad m) =>  (Bool -> Bool) -> Set.Set B.ByteString ->
                   Enumeratee AM.TrainingInstance AM.TrainingInstance m b
-filterFeatures keepFeatures = E.map (AM.filterFeatures keepFeatures)
+filterFeatures mod keepFeatures = E.map (AM.filterFeatures mod keepFeatures)
 
-filterFeaturesFunctor :: (Monad m) =>  Set.Set B.ByteString ->
+filterFeaturesFunctor :: (Monad m) =>  (Bool -> Bool) -> Set.Set B.ByteString ->
                          Enumeratee AM.TrainingInstance AM.TrainingInstance m b
-filterFeaturesFunctor keepFeatures =
-    E.map (AM.filterFeaturesFunctor keepFeatures)
+filterFeaturesFunctor mod keepFeatures =
+    E.map (AM.filterFeaturesFunctor mod keepFeatures)
 
 -- | Enumeratee grouping chunks according to an equality function.
 groupBy :: (Monad m, Eq a) => (a -> a -> Bool) ->

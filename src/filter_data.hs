@@ -15,11 +15,14 @@ import System.IO
 
 main :: IO ()
 main = do
-  (option, args) <- getOptions
+  (options, args) <- getOptions
 
-  let filter = case option of
-                 FilterFeatures -> filterFeatures
-                 FilterFunctors -> filterFeaturesFunctor
+  let filter0 = if elem FilterFeatures options
+                then filterFeatures
+                else filterFeaturesFunctor
+  let filter = if elem InverseFilter options
+               then filter0 not
+               else filter0 id
 
   unless (not $ null args) $ do
          name <- getProgName
@@ -32,16 +35,18 @@ main = do
        joinI $ filter keepFeatures $$
        joinI $ instanceGenerator $$ printByteString
 
-data Option = FilterFeatures | FilterFunctors
+data Option = FilterFeatures | FilterFunctors | InverseFilter
+            deriving Eq
 
 optionInfo :: [OptDescr Option]
 optionInfo =
-    [ Option ['f'] ["functor"] (NoArg FilterFunctors) "filter feature functors" ]
+    [ Option ['f'] ["functor"] (NoArg FilterFunctors) "filter feature functors",
+      Option ['i'] ["inverse"] (NoArg InverseFilter) "exclude specified features"]
 
 usage :: String -> String
 usage name = "Usage: " ++ name ++ " <OPTION> [FEATURES]\n"
 
-getOptions :: IO (Option, [String])
+getOptions :: IO ([Option], [String])
 getOptions = do
   args <- getArgs
   let (options, keep, errors) = getOpt Permute optionInfo args
@@ -52,5 +57,5 @@ getOptions = do
                exitFailure
 
   case options of
-    []        -> return (FilterFeatures, keep)
-    otherwise -> return (head options, keep)
+    []        -> return ([FilterFeatures], keep)
+    otherwise -> return (options, keep)
