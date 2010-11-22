@@ -26,13 +26,16 @@ data TrainingInstance = TrainingInstance {
       key          :: B.ByteString,         -- ^ Training instance identifier
       n            :: B.ByteString,
       score        :: Double,               -- ^ Quality score
-      features     :: [FeatureValue]        -- ^ Features
+      features     :: Features              -- ^ Features
 } deriving (Show, Eq)
 
 -- | Type of training instance (parsing or generation)
 data TrainingInstanceType =
     ParsingInstance | GenerationInstance
     deriving (Show, Eq)
+
+data Features = FeaturesString B.ByteString | FeaturesList [FeatureValue]
+                deriving (Show, Eq)
 
 data FeatureValue = FeatureValue {
       feature :: B.ByteString,
@@ -55,7 +58,7 @@ bsToTrainingInstance l =
           key = lineParts !! 1
           n = lineParts !! 2
           score = fst . fromJust . readDouble $ lineParts !! 3
-          features = bsToFeatureValue $ lineParts !! 4
+          features = FeaturesString $ lineParts !! 4
 
 -- | Convert a training instance to a ByteString.
 trainingInstanceToBs :: TrainingInstance -> B.ByteString
@@ -63,7 +66,7 @@ trainingInstanceToBs (TrainingInstance instType keyBS nBS sc fvals) =
     B.intercalate fieldSep [typeBS, keyBS, nBS, scoreBS, fValsBS]
     where typeBS = typeToBS instType
           scoreBS = BU.fromString $ printf "%f" sc
-          fValsBS = featureValueToBs fvals
+          fValsBS = featuresToBs fvals
           fieldSep = BU.fromString "#"
 
 instanceFieldSep = c2w '#'
@@ -80,15 +83,17 @@ typeToBS GenerationInstance = generationMarker
 parseMarker = BU.fromString "P"
 generationMarker = BU.fromString "G"
 
-bsToFeatureValue :: B.ByteString -> [FeatureValue]
-bsToFeatureValue = map fVal . B.split fieldSep
+parsedFeatures :: Features -> [FeatureValue]
+parsedFeatures f@(FeaturesList l) = l
+parsedFeatures (FeaturesString s) = map fVal $ B.split fieldSep s
     where fVal p = FeatureValue f (fst $ fromJust $ readDouble valBs)
               where [valBs, f] = B.split fValSep p
           fieldSep = c2w '|'
           fValSep = c2w '@'
 
-featureValueToBs :: [FeatureValue] -> B.ByteString
-featureValueToBs = B.intercalate fieldSep . map toBs
+featuresToBs :: Features -> B.ByteString
+featuresToBs (FeaturesString s) = s
+featuresToBs (FeaturesList l)   = B.intercalate fieldSep $ map toBs l
     where toBs (FeatureValue f val) = B.intercalate fValSep
                                       [BU.fromString $ printf "%f" val, f]
           fieldSep = BU.fromString "|" 
@@ -96,12 +101,15 @@ featureValueToBs = B.intercalate fieldSep . map toBs
 
 filterFeatures :: (Bool -> Bool) -> Set.Set B.ByteString -> TrainingInstance ->
                   TrainingInstance
-filterFeatures mod keepFeatures i = i { features = filter keep $ features i}
+filterFeatures mod keepFeatures i =
+    i { features = FeaturesList $ filter keep $
+                   parsedFeatures $ features i}
     where keep fv = mod $ Set.member (feature fv) keepFeatures
 
 filterFeaturesFunctor :: (Bool -> Bool) -> Set.Set B.ByteString ->
                          TrainingInstance -> TrainingInstance
-filterFeaturesFunctor mod keepFeatures i = i { features = filter keep $ features i}
+filterFeaturesFunctor mod keepFeatures i =
+    i { features = FeaturesList $ filter keep $ parsedFeatures $ features i}
     where keep fv = mod $ Set.member (functor $ feature fv) keepFeatures
           functor f = B.split argOpen f !! 0
           argOpen = c2w '('
