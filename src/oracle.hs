@@ -18,13 +18,10 @@ sumCount = liftI $ step (0.0, 0)
                              (sumAcc + sum xs, lenAcc + genericLength xs))
                 EOF -> Yield acc EOF
 
-longerThan = (>= 5) . genericLength
-
 main :: IO ()
 main = do
   (scoreSum, scoreLen) <- run_ $ lineEnum $$ joinI $ instanceParser $$
                           joinI $ groupByKey $$
-                          joinI $ filter longerThan $$
                           joinI $ bestScore $$ sumCount
   putStrLn $ "Contexts: " ++ (show scoreLen)
   putStrLn $ "Oracle: " ++ (printf("%.4f") $ scoreSum / fromIntegral scoreLen)
