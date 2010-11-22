@@ -4,6 +4,10 @@ Data.Alpino.Model:
 - Create (numbered) feature list.
 - Make TADM-format data files. 
 
+Utilities:
+
+- Directly read gzip files.
+
 Later:
 
 - Data.Alpino.DepStruct: handling dependeny structures.
