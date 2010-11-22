@@ -1,3 +1,13 @@
+-- |
+-- Module      : Data.Alpino.Model.Enumerator
+-- Copyright   : (c) 2010 Daniël de Kok
+-- License     : Apache 2
+--
+-- Maintainer  : Daniël de Kok <me@danieldk.eu>
+-- Stability   : experimental
+--
+-- Enumerators derived from Data.Alpino.Model
+
 module Data.Alpino.Model.Enumerator ( bestScore,
                                       concat,
                                       groupBy,
@@ -27,14 +37,21 @@ import qualified Data.List as L
 import qualified Data.Set as Set
 import System.IO (isEOF)
 
+-- | Retrieve the best score from a list of training instances.
 bestScore :: (Monad m) =>
                Enumeratee [AM.TrainingInstance] Double m b
 bestScore = E.map AM.bestScore'
 
+-- |
+-- Filter features by exact names. A modifier function can be applied,
+-- for instance, the 'not' function would exclude the specified features.
 filterFeatures :: (Monad m) =>  (Bool -> Bool) -> Set.Set B.ByteString ->
                   Enumeratee AM.TrainingInstance AM.TrainingInstance m b
 filterFeatures mod keepFeatures = E.map (AM.filterFeatures mod keepFeatures)
 
+-- |
+-- Filter features by their functor. A modifier function can be applied,
+-- for instance, the 'not' function would exclude the specified features.
 filterFeaturesFunctor :: (Monad m) =>  (Bool -> Bool) -> Set.Set B.ByteString ->
                          Enumeratee AM.TrainingInstance AM.TrainingInstance m b
 filterFeaturesFunctor mod keepFeatures =
