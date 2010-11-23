@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -XDeriveDataTypeable #-}
 -- |
 -- Module      : Data.Alpino.Model.Enumerator
 -- Copyright   : (c) 2010 Daniël de Kok
@@ -25,6 +26,7 @@ module Data.Alpino.Model.Enumerator ( bestScore,
                                     ) where
 
 import Prelude hiding (concat, filter, head)
+import Control.Exception.Base (Exception, SomeException)
 import Control.Monad.IO.Class (MonadIO(..), liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Alpino.Model as AM
@@ -35,7 +37,16 @@ import Data.Enumerator hiding (isEOF, length, map)
 import Data.List (genericLength)
 import qualified Data.List as L
 import qualified Data.Set as Set
+import Data.Typeable
 import System.IO (isEOF)
+
+data InvalidDataException = InvalidDataException String
+                            deriving Typeable
+
+instance Exception InvalidDataException
+
+instance Show InvalidDataException where
+    show (InvalidDataException e) = show e
 
 -- | Retrieve the best score from a list of training instances.
 bestScore :: (Monad m) =>
@@ -81,7 +92,8 @@ groupByKey = groupBy keyEq
 -- | Enumeratee that converts ByteStrings to TrainingInstances.
 instanceParser :: (Monad m) =>
                   Enumeratee BU.ByteString AM.TrainingInstance m b
-instanceParser = E.map AM.bsToTrainingInstance
+instanceParser = mapMaybeEnum (InvalidDataException "Could not parse instance.")
+                 AM.bsToTrainingInstance
 
 -- | Enumeratee that converts TrainingInstances to ByteStrings.
 instanceGenerator :: (Monad m) =>
@@ -122,6 +134,25 @@ concat = loop
                      newStep <- lift $ runIteratee $ k $ Chunks h
                      loop newStep
           loop step = return step
+
+mapMaybeEnum :: (Exception e, Monad m) => e -> (ao -> Maybe ai) ->
+                Enumeratee ao ai m b
+mapMaybeEnum exception f = loop where
+    loop = checkDone $ continue . step
+    step k EOF = yield (Continue k) EOF
+    step k (Chunks []) = continue $ step k
+    step k (Chunks xs) = case mapMaybeMaybe f xs of
+                     Just ys -> k (Chunks ys) >>== loop
+                     Nothing -> throwError exception
+--                     Nothing -> yield (Error exception) EOF
+
+-- If one function application fails return Nothing, otherwise Just xs
+mapMaybeMaybe :: (a -> Maybe b) -> [a] -> Maybe [b]
+mapMaybeMaybe _ []     = Just []
+mapMaybeMaybe f (x:xs) = do
+  r <- f x
+  rs <- mapMaybeMaybe f xs
+  return $ r:rs
 
 -- | Iterator printing ByteStrings to the standard output.
 printByteString :: MonadIO m => Iteratee B.ByteString m ()

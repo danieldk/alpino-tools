@@ -65,9 +65,10 @@ bestScore' :: [TrainingInstance] -> Double
 bestScore' = foldl' (\acc e -> max acc $ score e) 0.0
 
 -- | Read a training instance from a ByteString.
-bsToTrainingInstance :: B.ByteString -> TrainingInstance
-bsToTrainingInstance l =
-    TrainingInstance instType key n score features
+bsToTrainingInstance :: B.ByteString -> Maybe TrainingInstance
+bsToTrainingInstance l
+    | length lineParts /= 5 = Nothing
+    | otherwise = Just $ TrainingInstance instType key n score features
     where lineParts = B.split instanceFieldSep l
           instType = bsToType $ lineParts !! 0
           key = lineParts !! 1
