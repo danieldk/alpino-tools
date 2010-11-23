@@ -20,13 +20,15 @@ module Data.Alpino.Model.Enumerator ( bestScore,
                                       instanceParser,
                                       lineEnum,
                                       printByteString,
+                                      randomSample,
                                       scoreToBinary,
                                       scoreToBinaryNorm,
                                       scoreToNorm
                                     ) where
 
-import Prelude hiding (concat, filter, head)
+import Prelude hiding (concat, filter, head, mapM)
 import Control.Exception.Base (Exception, SomeException)
+import qualified Control.Monad as CM
 import Control.Monad.IO.Class (MonadIO(..), liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Alpino.Model as AM
@@ -39,6 +41,7 @@ import qualified Data.List as L
 import qualified Data.Set as Set
 import Data.Typeable
 import System.IO (isEOF)
+import System.Random (getStdRandom, split)
 
 data InvalidDataException = InvalidDataException String
                             deriving Typeable
@@ -135,6 +138,17 @@ concat = loop
                      loop newStep
           loop step = return step
 
+
+mapM :: Monad m => (ao -> m ai) -> Enumeratee ao ai m b
+mapM f = loop where
+    loop = checkDone $ continue . step
+    step k EOF = yield (Continue k) EOF
+    step k (Chunks []) = continue $ step k
+    step k (Chunks xs) = ( do
+                             ys <- lift $ CM.mapM f xs
+                             k $ Chunks ys
+                         ) >>== loop
+
 mapMaybeEnum :: (Exception e, Monad m) => e -> (ao -> Maybe ai) ->
                 Enumeratee ao ai m b
 mapMaybeEnum exception f = loop where
@@ -160,6 +174,14 @@ printByteString = continue step
     where step (Chunks []) = continue step
           step (Chunks xs) = liftIO (mapM_ B.putStrLn xs) >> continue step
           step EOF = yield () EOF
+
+randomSample :: (MonadIO m) => Int ->
+                Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
+randomSample n = mapM (liftIO . sampleFun n)
+    where sampleFun :: Int -> [AM.TrainingInstance] -> IO [AM.TrainingInstance]
+          sampleFun n i = do
+            gen <- getStdRandom split
+            return $ AM.randomSample gen n i
 
 -- | Enumerator recaculating scores to binary scores (1.0 for best,
 -- | 0.0 for the rest).

@@ -16,6 +16,7 @@ module Data.Alpino.Model ( TrainingInstance(..),
                            bsToTrainingInstance,
                            filterFeatures,
                            filterFeaturesFunctor,
+                           randomSample,
                            scoreToBinary,
                            scoreToBinaryNorm,
                            scoreToNorm,
@@ -29,6 +30,8 @@ import qualified Data.ByteString.UTF8 as BU
 import Data.List (foldl')
 import Data.Maybe (fromJust)
 import qualified Data.Set as Set
+import System.Random (RandomGen)
+import System.Random.Shuffle (shuffle')
 import Text.Printf (printf)
 
 -- | A training instance.
@@ -137,6 +140,14 @@ filterFeaturesFunctor mod keepFeatures i =
     where keep fv = mod $ Set.member (functor $ feature fv) keepFeatures
           functor f = B.split argOpen f !! 0
           argOpen = c2w '('
+
+-- | Extract a random sample from a list of instances.
+randomSample :: RandomGen g => g -> Int -> [TrainingInstance] ->
+                [TrainingInstance]
+randomSample g n i
+    | instLen <= n = i
+    | otherwise = take n $ shuffle' i instLen g
+    where instLen = length i
 
 -- |
 -- Convert the quality scores to binary scores. The instances
