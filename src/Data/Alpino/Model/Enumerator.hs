@@ -27,7 +27,7 @@ module Data.Alpino.Model.Enumerator ( bestScore,
                                     ) where
 
 import Prelude hiding (concat, filter, head, mapM)
-import Control.Exception.Base (Exception, SomeException)
+import Control.Exception.Base (Exception)
 import qualified Control.Monad as CM
 import Control.Monad.IO.Class (MonadIO(..), liftIO)
 import Control.Monad.Trans.Class (lift)
@@ -36,7 +36,6 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as BU
 import qualified Data.Enumerator as E
 import Data.Enumerator hiding (isEOF, length, map)
-import Data.List (genericLength)
 import qualified Data.List as L
 import qualified Data.Set as Set
 import Data.Typeable
@@ -61,15 +60,15 @@ bestScore = E.map AM.bestScore'
 -- for instance, the 'not' function would exclude the specified features.
 filterFeatures :: (Monad m) =>  (Bool -> Bool) -> Set.Set B.ByteString ->
                   Enumeratee AM.TrainingInstance AM.TrainingInstance m b
-filterFeatures mod keepFeatures = E.map (AM.filterFeatures mod keepFeatures)
+filterFeatures f keepFeatures = E.map (AM.filterFeatures f keepFeatures)
 
 -- |
 -- Filter features by their functor. A modifier function can be applied,
 -- for instance, the 'not' function would exclude the specified features.
 filterFeaturesFunctor :: (Monad m) =>  (Bool -> Bool) -> Set.Set B.ByteString ->
                          Enumeratee AM.TrainingInstance AM.TrainingInstance m b
-filterFeaturesFunctor mod keepFeatures =
-    E.map (AM.filterFeaturesFunctor mod keepFeatures)
+filterFeaturesFunctor f keepFeatures =
+    E.map (AM.filterFeaturesFunctor f keepFeatures)
 
 -- | Enumeratee grouping chunks according to an equality function.
 groupBy :: (Monad m, Eq a) => (a -> a -> Bool) ->
@@ -79,8 +78,8 @@ groupBy f = loop
             h <- peek
             case h of
               Nothing -> return $ Continue k
-              Just h -> do
-                     xs <- E.span $ f h
+              Just e -> do
+                     xs <- E.span $ f e
                      newStep <- lift $ runIteratee $ k $ Chunks [xs]
                      loop newStep
           loop step = return step
@@ -90,7 +89,7 @@ groupByKey :: (Monad m) =>
            Enumeratee AM.TrainingInstance [AM.TrainingInstance] m b
 groupByKey = groupBy keyEq
     where keyEq i1 i2 = AM.instanceType i1 == AM.instanceType i2 &&
-                        AM.key i1 == AM.key i2
+                        AM.instanceKey i1 == AM.instanceKey i2
 
 -- | Enumeratee that converts ByteStrings to TrainingInstances.
 instanceParser :: (Monad m) =>
@@ -133,8 +132,8 @@ concat = loop
             h <- E.head
             case h of
               Nothing -> return $ Continue k
-              Just h -> do
-                     newStep <- lift $ runIteratee $ k $ Chunks h
+              Just e -> do
+                     newStep <- lift $ runIteratee $ k $ Chunks e
                      loop newStep
           loop step = return step
 
@@ -177,9 +176,9 @@ printByteString = continue step
 
 randomSample :: (MonadIO m) => Int ->
                 Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
-randomSample n = mapM (liftIO . sampleFun n)
-    where sampleFun :: Int -> [AM.TrainingInstance] -> IO [AM.TrainingInstance]
-          sampleFun n i = do
+randomSample n = mapM (liftIO . sampleFun)
+    where sampleFun :: [AM.TrainingInstance] -> IO [AM.TrainingInstance]
+          sampleFun i = do
             gen <- getStdRandom split
             return $ AM.randomSample gen n i
 

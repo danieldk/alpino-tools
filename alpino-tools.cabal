@@ -20,7 +20,7 @@ Library
                         containers >= 0.3.0.0, random >= 1.0.0.3,
                         random-shuffle >= 0.0.2
   HS-Source-Dirs:       src
-  Ghc-Options:		-O2
+  Ghc-Options:		-O2 -Wall
 
 Executable at_rescore_data
   HS-Source-Dirs:       src
