@@ -91,13 +91,13 @@ groupByKey = groupBy keyEq
     where keyEq i1 i2 = AM.instanceType i1 == AM.instanceType i2 &&
                         AM.instanceKey i1 == AM.instanceKey i2
 
--- | Enumeratee that converts ByteStrings to TrainingInstances.
+-- | Enumeratee that converts `BU.ByteString` to `AM.TrainingInstance`.
 instanceParser :: (Monad m) =>
                   Enumeratee BU.ByteString AM.TrainingInstance m b
 instanceParser = mapMaybeEnum (InvalidDataException "Could not parse instance.")
                  AM.bsToTrainingInstance
 
--- | Enumeratee that converts TrainingInstances to ByteStrings.
+-- | Enumeratee that converts `AM.TrainingInstance` to `B.ByteString`.
 instanceGenerator :: (Monad m) =>
                      Enumeratee AM.TrainingInstance B.ByteString m b
 instanceGenerator = E.map AM.trainingInstanceToBs
@@ -157,7 +157,6 @@ mapMaybeEnum exception f = loop where
     step k (Chunks xs) = case mapMaybeMaybe f xs of
                      Just ys -> k (Chunks ys) >>== loop
                      Nothing -> throwError exception
---                     Nothing -> yield (Error exception) EOF
 
 -- If one function application fails return Nothing, otherwise Just xs
 mapMaybeMaybe :: (a -> Maybe b) -> [a] -> Maybe [b]
@@ -167,13 +166,14 @@ mapMaybeMaybe f (x:xs) = do
   rs <- mapMaybeMaybe f xs
   return $ r:rs
 
--- | Iterator printing ByteStrings to the standard output.
+-- | Iterator printing `B.ByteString` to the standard output.
 printByteString :: MonadIO m => Iteratee B.ByteString m ()
 printByteString = continue step
     where step (Chunks []) = continue step
           step (Chunks xs) = liftIO (mapM_ B.putStrLn xs) >> continue step
           step EOF = yield () EOF
 
+-- | Extract a random sample of @n@ instances from a context.
 randomSample :: (MonadIO m) => Int ->
                 Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
 randomSample n = mapM (liftIO . sampleFun)
@@ -182,20 +182,23 @@ randomSample n = mapM (liftIO . sampleFun)
             gen <- getStdRandom split
             return $ AM.randomSample gen n i
 
--- | Enumerator recaculating scores to binary scores (1.0 for best,
--- | 0.0 for the rest).
+-- |
+-- Enumerator recaculating scores to binary scores (/1.0/ for best,
+-- /0.0/ for the rest).
 scoreToBinary :: (Monad m) =>
                  Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
 scoreToBinary = E.map AM.scoreToBinary
 
--- | Enumerator recalculating scores, dividing a score of 1.0 uniformly
--- | over instances with the highest quality score.
+-- |
+-- Enumerator recalculating scores, dividing a score of /1.0/ uniformly
+-- over instances with the highest quality score.
 scoreToBinaryNorm :: (Monad m) =>
                      Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
 scoreToBinaryNorm = E.map AM.scoreToBinaryNorm
 
--- | Enumerator that normalized instance scores over all instances
--- | in the list.
+-- |
+-- Enumerator that normalized instance scores over all instances
+-- in the list.
 scoreToNorm :: (Monad m) =>
                Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
 scoreToNorm = E.map AM.scoreToNorm

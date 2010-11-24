@@ -7,7 +7,12 @@
 -- Stability   : experimental
 --
 -- Data structures and functions to modify and process training data for
--- the Alpino parser/generator.
+-- the Alpino parse disambiguation and fluency ranking components.
+--
+-- Since the training data follows a very general format, this module and
+-- submodules should also be usable for other parsers and generators.
+-- Please refer to the description of `bsToTrainingInstance` for more
+-- information about the format that is used.
 
 module Data.Alpino.Model ( FeatureValue(..),
                            TrainingInstance(..),
@@ -45,7 +50,7 @@ data TrainingInstance = TrainingInstance {
       instanceFeatures :: Features              -- ^ Features
 } deriving (Show, Eq)
 
--- | Type of training instance (parsing or generation)/
+-- | Type of training instance (parsing or generation).
 data TrainingInstanceType = ParsingInstance
                           | GenerationInstance
     deriving (Show, Eq)
@@ -69,7 +74,24 @@ bestScore = foldl (\acc e -> max acc $ instanceScore e) 0.0
 bestScore' :: [TrainingInstance] -> Double
 bestScore' = foldl' (\acc e -> max acc $ instanceScore e) 0.0
 
--- | Read a training instance from a ByteString.
+-- |
+-- Read a training instance from a `BU.ByteString`.
+--
+-- The bytestring is assumed to contain five fields separated by
+-- the hash (/#/) character:
+--
+-- 1. An indicator for the type of training instance (/P/ for parse
+--   disambiguation, /G/ for fluency ranking).
+--
+-- 2. The identifier of the context (usually the identifier of a
+--   sentence of logircal form).
+--
+-- 3. Parse/generation number.
+--
+-- 4. A quality score for this training instance.
+--
+-- 5. A list of features and values. List elements are separated by
+--   the vertical bar (/|/), and have the following form: /value@feature/
 bsToTrainingInstance :: B.ByteString -> Maybe TrainingInstance
 bsToTrainingInstance l
     | length lineParts /= 5 = Nothing
@@ -81,7 +103,7 @@ bsToTrainingInstance l
           score = fst . fromJust . readDouble $ lineParts !! 3
           features = FeaturesString $ lineParts !! 4
 
--- | Convert a training instance to a ByteString.
+-- | Convert a training instance to a `B.ByteString`.
 trainingInstanceToBs :: TrainingInstance -> B.ByteString
 trainingInstanceToBs (TrainingInstance instType keyBS nBS sc fvals) =
     B.intercalate fieldSep [typeBS, keyBS, nBS, scoreBS, fValsBS]
@@ -129,7 +151,7 @@ featuresToBs (FeaturesList l)   = B.intercalate fieldSep $ map toBs l
 
 -- |
 -- Filter features by exact names. A modifier function can be applied,
--- for instance, the 'not' function would exclude the specified features.
+-- for instance, the `not` function would exclude the specified features.
 filterFeatures :: (Bool -> Bool) -> Set.Set B.ByteString -> TrainingInstance ->
                   TrainingInstance
 filterFeatures f keepFeatures i =
@@ -139,7 +161,7 @@ filterFeatures f keepFeatures i =
 
 -- |
 -- Filter features by their functor. A modifier function can be applied,
--- for instance, the 'not' function would exclude the specified features.
+-- for instance, the `not` function would exclude the specified features.
 filterFeaturesFunctor :: (Bool -> Bool) -> Set.Set B.ByteString ->
                          TrainingInstance -> TrainingInstance
 filterFeaturesFunctor f keepFeatures i =
@@ -159,8 +181,8 @@ randomSample g n i
 
 -- |
 -- Convert the quality scores to binary scores. The instances
--- with the highest quality score get score 1.0, other instances
--- get score 0.0.
+-- with the highest quality score get score /1.0/, other instances
+-- get score /0.0/.
 scoreToBinary :: [TrainingInstance] -> [TrainingInstance]
 scoreToBinary ctx = map (rescoreEvt maxScore) ctx
     where maxScore = bestScore ctx
@@ -169,7 +191,7 @@ scoreToBinary ctx = map (rescoreEvt maxScore) ctx
             | otherwise = evt { instanceScore = 0.0 }
 
 -- |
--- Divide a score of 1.0 uniformly over instances with the highest
+-- Divide a score of /1.0/ uniformly over instances with the highest
 -- quality scores.
 scoreToBinaryNorm :: [TrainingInstance] -> [TrainingInstance]
 scoreToBinaryNorm ctx = map (rescoreEvt maxScore) ctx
