@@ -22,27 +22,27 @@ Library
   HS-Source-Dirs:       src
   Ghc-Options:		-O2 -Wall
 
-Executable at_rescore_data
+Executable at_model_rescore_data
   HS-Source-Dirs:       src
-  main-is:              rescore_data.hs
+  main-is:              model_rescore_data.hs
   Ghc-Options:		-O2
 
-Executable at_filter_data
+Executable at_model_filter_data
   HS-Source-Dirs:       src
-  main-is:              filter_data.hs
+  main-is:              model_filter_data.hs
   Ghc-Options:		-O2
 
-Executable at_oracle
+Executable at_model_oracle
   HS-Source-Dirs:       src
-  main-is:              oracle.hs
+  main-is:              model_oracle.hs
   Ghc-Options:		-O2
 
-Executable at_random_sample
+Executable at_model_random_sample
   HS-Source-Dirs:       src
-  main-is:              random_sample.hs
+  main-is:              model_random_sample.hs
   Ghc-Options:		-O2
 
-Executable at_statistics_data
+Executable at_model_statistics_data
   HS-Source-Dirs:       src
-  main-is:              statistics_data.hs
+  main-is:              model_statistics_data.hs
   Ghc-Options:		-O2
