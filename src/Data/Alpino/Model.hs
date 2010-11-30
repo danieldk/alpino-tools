@@ -26,7 +26,8 @@ module Data.Alpino.Model ( FeatureValue(..),
                            scoreToBinary,
                            scoreToBinaryNorm,
                            scoreToNorm,
-                           trainingInstanceToBs
+                           trainingInstanceToBs,
+                           trainingContextToContext
                          ) where
 
 import qualified Data.ByteString as B
@@ -37,6 +38,7 @@ import Data.List (foldl')
 import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import GHC.Word (Word8)
+import Numeric.MaxEnt (Context(..), Event(..))
 import System.Random (RandomGen)
 import System.Random.Shuffle (shuffle')
 import Text.Printf (printf)
@@ -111,6 +113,18 @@ trainingInstanceToBs (TrainingInstance instType keyBS nBS sc fvals) =
           scoreBS = BU.fromString $ printf "%f" sc
           fValsBS = featuresToBs fvals
           fieldSep = BU.fromString "#"
+
+-- |
+-- Convert a list of training instances to a `Context`. The caller should
+-- take proper care to ensure that the list represents a proper context.
+trainingContextToContext :: [TrainingInstance] -> Context B.ByteString
+trainingContextToContext = Context . map trainingInstanceToEvent
+
+trainingInstanceToEvent :: TrainingInstance -> Event B.ByteString
+trainingInstanceToEvent (TrainingInstance _ _ _ score fs) =
+    Event score fTuples
+        where parsedFs = parsedFeatures fs
+              fTuples = map (\(FeatureValue f v) -> (f, v)) parsedFs
 
 instanceFieldSep :: GHC.Word.Word8
 instanceFieldSep = c2w '#'

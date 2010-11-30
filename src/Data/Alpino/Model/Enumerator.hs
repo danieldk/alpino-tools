@@ -23,7 +23,8 @@ module Data.Alpino.Model.Enumerator ( bestScore,
                                       randomSample,
                                       scoreToBinary,
                                       scoreToBinaryNorm,
-                                      scoreToNorm
+                                      scoreToNorm,
+                                      trainingContextToContext
                                     ) where
 
 import Prelude hiding (concat, filter, head, mapM)
@@ -39,6 +40,7 @@ import Data.Enumerator hiding (isEOF, length, map)
 import qualified Data.List as L
 import qualified Data.Set as Set
 import Data.Typeable
+import Numeric.MaxEnt (Context(..))
 import System.IO (isEOF)
 import System.Random (getStdRandom, split)
 
@@ -202,3 +204,11 @@ scoreToBinaryNorm = E.map AM.scoreToBinaryNorm
 scoreToNorm :: (Monad m) =>
                Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
 scoreToNorm = E.map AM.scoreToNorm
+
+-- |
+-- Enumerator that converts a list of training instances to a `Context`.
+-- The caller should ensure that the list represents a proper context,
+-- for instance by using the `groupByKey` enumerator.
+trainingContextToContext :: (Monad m) =>
+               Enumeratee [AM.TrainingInstance] (Context B.ByteString) m b
+trainingContextToContext = E.map AM.trainingContextToContext
