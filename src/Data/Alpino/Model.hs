@@ -77,7 +77,7 @@ bestScore' :: [TrainingInstance] -> Double
 bestScore' = foldl' (\acc e -> max acc $ instanceScore e) 0.0
 
 -- |
--- Read a training instance from a `BU.ByteString`.
+-- Read a training instance from a `B.ByteString`.
 --
 -- The bytestring is assumed to contain five fields separated by
 -- the hash (/#/) character:
