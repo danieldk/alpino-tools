@@ -13,49 +13,78 @@ import System.Environment
 import System.Exit
 import System.IO
 
+readFeatureFile :: String -> IO [String]
+readFeatureFile fn = do
+  h <- openFile fn ReadMode
+  c <- hGetContents h
+  return $ lines c
+
+
+readFeatureArgs :: [String] -> IO [String]
+readFeatureArgs args = 
+    if null args then do 
+                   name <- getProgName
+                   hPutStrLn stderr $ usageInfo (usage name) options
+                   exitFailure
+    else
+        return args
+      
 main :: IO ()
 main = do
-  (options, args) <- getOptions
+  (opts, args) <- getOptions
 
-  let filter0 = if elem FilterFeatures options
-                then filterFeatures
-                else filterFeaturesFunctor
-  let filter = if elem InverseFilter options
+  let filter0 = if optFilterFunctors opts
+                then filterFeaturesFunctor
+                else filterFeatures
+  let filter = if optInverseFilter opts
                then filter0 not
                else filter0 id
 
-  unless (not $ null args) $ do
-         name <- getProgName
-         hPutStrLn stderr $ usageInfo (usage name) optionInfo
-         exitFailure
+  features <- case optFeatureFile opts of
+                Just f  -> readFeatureFile f
+                Nothing -> readFeatureArgs args
 
-  let keepFeatures = Set.fromList $ map fromString args
+  let keepFeatures = Set.fromList $ map fromString features
 
   run_ $ lineEnum $$ joinI $ instanceParser $$
        joinI $ filter keepFeatures $$
        joinI $ instanceGenerator $$ printByteString
 
-data Option = FilterFeatures | FilterFunctors | InverseFilter
-            deriving Eq
+data Options = Options {
+      optFilterFunctors :: Bool,
+      optInverseFilter  :: Bool,
+      optFeatureFile    :: Maybe String
+    }
 
-optionInfo :: [OptDescr Option]
-optionInfo =
-    [ Option ['f'] ["functor"] (NoArg FilterFunctors) "filter feature functors",
-      Option ['i'] ["inverse"] (NoArg InverseFilter) "exclude specified features"]
+options :: [OptDescr (Options -> Options)]
+options =
+    [ Option ['f'] ["functor"]
+                 (NoArg
+                  (\opt -> opt { optFilterFunctors = True}))
+                 "filter feature functors",
+      Option ['i'] ["inverse"]
+                 (NoArg
+                  (\opt -> opt { optInverseFilter = True}))
+                  "exclude specified features",
+      Option ['r'] ["read"]
+                  (ReqArg
+                   (\arg opt -> opt { optFeatureFile = Just arg})
+                   "FILE")
+                  "read features from a file"]
+
+startOptions :: Options
+startOptions = Options {
+                 optFilterFunctors = False,
+                 optInverseFilter  = False,
+                 optFeatureFile    = Nothing
+}
 
 usage :: String -> String
 usage name = "Usage: " ++ name ++ " <OPTION> [FEATURES]\n"
 
-getOptions :: IO ([Option], [String])
+getOptions :: IO (Options, [String])
 getOptions = do
   args <- getArgs
-  let (options, keep, errors) = getOpt Permute optionInfo args
-  unless (null errors) $ do
-               name <- getProgName
-               hPutStrLn stderr $ L.concat errors
-               hPutStrLn stderr $ usageInfo (usage name) optionInfo
-               exitFailure
-
-  case options of
-    []        -> return ([FilterFeatures], keep)
-    otherwise -> return (options, keep)
+  let (actions, keep, errors) = getOpt Permute options args
+  let opts = foldl (\acc a -> a acc) startOptions actions
+  return (opts, keep)
