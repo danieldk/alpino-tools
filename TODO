@@ -3,7 +3,6 @@ Data.Alpino.Model:
 - Frequency-based selection.
 - Create (numbered) feature list.
 - Make TADM-format data files. 
-- Random samples.
 
 Utilities:
 
