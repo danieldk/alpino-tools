@@ -13,7 +13,6 @@ module Data.Alpino.Model.Enumerator ( bestScore,
                                       concat,
                                       groupBy,
                                       groupByKey,
-                                      filter,
                                       filterFeatures,
                                       filterFeaturesFunctor,
                                       instanceGenerator,
@@ -26,17 +25,16 @@ module Data.Alpino.Model.Enumerator ( bestScore,
                                       scoreToNorm
                                     ) where
 
-import Prelude hiding (concat, filter, head, mapM)
+import Prelude hiding (concat, filter, mapM)
 import Control.Exception.Base (Exception)
-import qualified Control.Monad as CM
 import Control.Monad.IO.Class (MonadIO(..), liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Alpino.Model as AM
 import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as BU
 import qualified Data.Enumerator as E
-import Data.Enumerator hiding (isEOF, length, map)
-import qualified Data.List as L
+import Data.Enumerator hiding (isEOF, head, length, map)
+import qualified Data.Enumerator.List as EL
 import qualified Data.Set as Set
 import Data.Typeable
 import System.IO (isEOF)
@@ -79,7 +77,7 @@ groupBy f = loop
             case h of
               Nothing -> return $ Continue k
               Just e -> do
-                     xs <- E.span $ f e
+                     xs <- EL.takeWhile $ f e
                      newStep <- lift $ runIteratee $ k $ Chunks [xs]
                      loop newStep
           loop step = return step
@@ -114,39 +112,18 @@ lineEnum = Iteratee . loop
                        runIteratee (k (Chunks [line])) >>= loop
           loop step = return step
 
--- | Enumeratee that filters with a predicate.
-filter :: (Monad m) => (a -> Bool) -> Enumeratee a a m b
-filter f = loop
-    where loop = checkDone $ continue . step
-          step k EOF = yield (Continue k) EOF
-          step k (Chunks []) = continue $ step k
-          step k (Chunks xs) = do
-            newStep <- lift $ runIteratee $ k $ Chunks $ L.filter f xs
-            loop newStep
-
 -- | Enumeratee concatenating lists.
 concat :: (Monad m) =>
               Enumeratee [a] a m b
 concat = loop
     where loop (Continue k) = do
-            h <- E.head
+            h <- EL.head
             case h of
               Nothing -> return $ Continue k
               Just e -> do
                      newStep <- lift $ runIteratee $ k $ Chunks e
                      loop newStep
           loop step = return step
-
-
-mapM :: Monad m => (ao -> m ai) -> Enumeratee ao ai m b
-mapM f = loop where
-    loop = checkDone $ continue . step
-    step k EOF = yield (Continue k) EOF
-    step k (Chunks []) = continue $ step k
-    step k (Chunks xs) = ( do
-                             ys <- lift $ CM.mapM f xs
-                             k $ Chunks ys
-                         ) >>== loop
 
 mapMaybeEnum :: (Exception e, Monad m) => e -> (ao -> Maybe ai) ->
                 Enumeratee ao ai m b

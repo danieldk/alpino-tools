@@ -10,13 +10,11 @@ import Data.List (genericLength)
 import Text.Printf (printf)
 
 sumCount :: (Monad m, Fractional a, Integral b) => Iteratee a m (a, b)
-sumCount = liftI $ step (0.0, 0)
-    where step acc@(!sumAcc, !lenAcc) chunk =
-              case chunk of
-                Chunks [] -> Continue $ returnI . step acc
-                Chunks xs -> Continue $ returnI . (step $
-                             (sumAcc + sum xs, lenAcc + genericLength xs))
-                EOF -> Yield acc EOF
+sumCount = continue $ step (0.0, 0)
+    where step acc (Chunks []) = continue $ step acc
+          step (!sumAcc, !lenAcc) (Chunks xs) =
+              continue $ step (sumAcc + sum xs, lenAcc + genericLength xs)
+          step acc EOF = yield acc EOF
 
 main :: IO ()
 main = do
