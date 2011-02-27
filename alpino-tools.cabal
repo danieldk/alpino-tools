@@ -13,12 +13,13 @@ Cabal-Version:	>= 1.2
 Build-Type:	Simple
 
 Library
-  Exposed-Modules:	Data.Alpino.Model, Data.Alpino.Model.Enumerator
+  Exposed-Modules:      Data.Alpino.DepStruct, Data.Alpino.DepStruct.Pickle,
+                        Data.Alpino.Model, Data.Alpino.Model.Enumerator
   Build-Depends:	base >= 4 && < 5, bytestring >= 0.9.1.7,
                         utf8-string >= 0.3.6, bytestring-lexing >= 0.2.1,
                         enumerator >= 0.4.5 && < 0.5, transformers >= 0.2.2.0,
                         containers >= 0.3.0.0, random >= 1.0.0.3,
-                        random-shuffle >= 0.0.2
+                        random-shuffle >= 0.0.2, hexpat-pickle >= 0.4
   HS-Source-Dirs:       src
   Ghc-Options:		-O2 -Wall
 
