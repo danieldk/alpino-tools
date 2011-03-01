@@ -39,10 +39,31 @@ xpNode =
   xpElem "node"
     (xp4Tuple
       (xpAttr        "rel"  xpRel)
-      (xpAttrImplied "cat"  xpText)
+      (xpAttrImplied "cat"  xpCat)
       (xpAttrImplied "pos"  xpText)
       (xpAttrImplied "root" xpText))
     (xpList xpNode)
+
+cats :: [(Cat, String)]
+cats = [(SMain, "smain"), (NP, "np"), (PPart, "ppart"), (PPres, "ppres"),
+        (PP, "pp"), (SSub, "ssub"), (Inf, "inf"), (Cp, "cp"), (DU, "du"),
+        (Ap, "ap"), (AdvP, "advp"), (TI, "ti"), (Rel, "rel"), (WhRel, "whrel"),
+        (WhSub, "whsub"), (Conj, "conj"), (WhQ, "whq"), (Oti, "oti"),
+        (Ahi, "ahi"), (DetP, "detp"), (SV1, "sv1"), (SVan, "svan"),
+        (MWU, "mwu"), (TopCat, "top")]
+
+xpCat :: PU String Cat
+xpCat =
+  xpWrap (
+    \cat -> case lookup cat $ map (\(a, b) -> (b, a)) cats of
+      Just r  -> r
+      Nothing -> error $ "Unknown category: " ++ cat,
+    \cat -> case lookup cat cats of
+      Just r  -> r
+      Nothing -> error $ "Unknown category: " ++ show cat
+  )
+  xpText
+
 
 
 rels :: [(Rel, String)]
