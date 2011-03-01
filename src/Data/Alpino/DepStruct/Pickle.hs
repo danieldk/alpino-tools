@@ -9,6 +9,7 @@ import Text.XML.Expat.Pickle
 
 import Data.Alpino.DepStruct 
 
+-- | Pickler for Alpino dependency structures.
 xpAlpinoDS :: PU [UNode String] AlpinoDS
 xpAlpinoDS = 
   xpElemNodes "alpino_ds" $

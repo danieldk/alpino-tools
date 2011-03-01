@@ -7,19 +7,31 @@ module Data.Alpino.DepStruct (
 
 import Data.Tree
 
+-- | Alpino dependency structures define syntactic relations between
+--   words. For convenience, the dependency structure is represented
+--   as a rose tree. Additionally, the dependency structure contains
+--   the sentence corresponding to the dependency structure.
 data AlpinoDS = AlpinoDS {
+  -- | Root of the dependency tree. 
   dsRoot     :: Tree DSLabel,
+  -- | Sentence corresponding to the dependency tree. 
   dsSentence :: String
 } deriving(Show, Eq)
 
+-- | Label containing syntactic or lexical information of a node.
 data DSLabel =
    CatLabel {
+    -- | Category
     catRel  :: Rel,
+    -- | Dependency relation
     catCat  :: Cat
    }
   | LexLabel {
+    -- | Dependency relation
     lexRel  :: Rel,
+    -- | Part of speech tag
     lexPos  :: String,
+    -- | Root/stem
     lexRoot :: String
   } deriving (Show, Eq)
 
