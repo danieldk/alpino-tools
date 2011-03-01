@@ -19,7 +19,8 @@ Library
                         utf8-string >= 0.3.6, bytestring-lexing >= 0.2.1,
                         enumerator >= 0.4.5 && < 0.5, transformers >= 0.2.2.0,
                         containers >= 0.3.0.0, random >= 1.0.0.3,
-                        random-shuffle >= 0.0.2, hexpat-pickle >= 0.4
+                        random-shuffle >= 0.0.2, hexpat-pickle >= 0.4,
+                        rosezipper >= 0.2
   HS-Source-Dirs:       src
   Ghc-Options:		-O2 -Wall
 
