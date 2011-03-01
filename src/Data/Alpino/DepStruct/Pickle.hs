@@ -23,26 +23,45 @@ xpAlpinoDS =
     xpNode
     xpSentence
 
-xpNode :: PU [UNode String] (DT.Tree DSLabel)
-xpNode =
+xpCatNode :: PU [UNode String] (DT.Tree DSLabel)
+xpCatNode =
   xpWrap (
-    \((rel, cat, pos, root), forest) ->
-      DT.Node (DSLabel rel cat pos root) forest,
+    \((rel, cat), forest) ->
+      DT.Node (CatLabel rel cat) forest,
     \t -> (
       (
-        nodeRel $ rootLabel  t,
-        nodeCat $ rootLabel  t,
-        nodePos $ rootLabel  t,
-        nodeRoot $ rootLabel t),
+        catRel $ rootLabel t,
+        catCat $ rootLabel t),
       subForest t)
-  ) $
-  xpElem "node"
-    (xp4Tuple
-      (xpAttr        "rel"  xpRel)
-      (xpAttrImplied "cat"  xpCat)
-      (xpAttrImplied "pos"  xpText)
-      (xpAttrImplied "root" xpText))
+    ) $
+    xpElem "node"
+    (xpPair
+      (xpAttr "rel" xpRel)
+      (xpAttr "cat" xpCat))
     (xpList xpNode)
+
+xpLexNode :: PU [UNode String] (DT.Tree DSLabel)
+xpLexNode =
+  xpWrap (
+    \(rel, pos, root) ->
+      DT.Node (LexLabel rel pos root) [],
+    \t -> 
+      (lexRel $ rootLabel  t,
+       lexPos $ rootLabel  t,
+       lexRoot $ rootLabel t)) $
+  xpElemAttrs "node"
+    (xpTriple
+      (xpAttr        "rel"  xpRel)
+      (xpAttr        "pos"  xpText)
+      (xpAttr        "root" xpText))
+
+xpNode :: PU [UNode String] (DT.Tree DSLabel)
+xpNode =
+  xpAlt picklerIndex [xpLexNode, xpCatNode]
+  where
+    picklerIndex (DT.Node label _) = case label of
+      LexLabel _ _ _ -> 0
+      CatLabel _ _   -> 1
 
 cats :: [(Cat, String)]
 cats = [(SMain, "smain"), (NP, "np"), (PPart, "ppart"), (PPres, "ppres"),

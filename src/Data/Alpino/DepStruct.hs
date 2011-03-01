@@ -13,13 +13,15 @@ data AlpinoDS = AlpinoDS {
 } deriving(Show, Eq)
 
 data DSLabel =
-  DSLabel {
-      nodeRel  :: Rel,
-      nodeCat  :: Maybe Cat,
-      nodePos  :: Maybe String,
-      nodeRoot :: Maybe String
-  }
-  deriving (Show, Eq)
+   CatLabel {
+    catRel  :: Rel,
+    catCat  :: Cat
+   }
+  | LexLabel {
+    lexRel  :: Rel,
+    lexPos  :: String,
+    lexRoot :: String
+  } deriving (Show, Eq)
 
 data Rel = Hdf | Hd | Cmp | Sup | Su | Obj1 | PObj1 | Obj2| Se | PC | VC
   | SVP | PredC | Ld | Me | PredM | ObComp | Mod | Body | Det | App | Whd
