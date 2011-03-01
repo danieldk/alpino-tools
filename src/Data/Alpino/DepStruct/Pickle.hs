@@ -73,17 +73,14 @@ cats = [(SMain, "smain"), (NP, "np"), (PPart, "ppart"), (PPres, "ppres"),
 
 xpCat :: PU String Cat
 xpCat =
-  xpWrap (
-    \cat -> case lookup cat $ map (\(a, b) -> (b, a)) cats of
-      Just r  -> r
-      Nothing -> error $ "Unknown category: " ++ cat,
-    \cat -> case lookup cat cats of
-      Just r  -> r
-      Nothing -> error $ "Unknown category: " ++ show cat
-  )
+  xpWrapMaybe_
+    "Could not parse 'cat' attribute."
+    (\cat -> lookup cat $ map (\(a, b) -> (b, a)) cats,
+    -- Fixme: We should use pattern matching completeness check.
+     \cat -> case lookup cat cats of
+       Just c  -> c
+       Nothing -> error "Bug: Relation list is incomplete!") $
   xpText
-
-
 
 rels :: [(Rel, String)]
 rels = [(Hdf, "hdf"), (Hd, "hd"), (Cmp, "cmp"), (Sup, "sup"),
@@ -97,14 +94,14 @@ rels = [(Hdf, "hdf"), (Hd, "hd"), (Cmp, "cmp"), (Sup, "sup"),
 
 xpRel :: PU String Rel
 xpRel =
-  xpWrap (
-    \rel -> case lookup rel $ map (\(a, b) -> (b, a)) rels of
-      Just r  -> r
-      Nothing -> DashDash,
-    \rel -> case lookup rel rels of
-      Just r  -> r
-      Nothing -> "--"
-  )
+  xpWrapMaybe_
+    "Could not parse 'rel' attribute."
+      (\rel -> lookup rel $ map (\(a, b) -> (b, a)) rels,
+      -- Fixme: We should use pattern matching completeness check.
+       \rel -> case lookup rel rels of
+         Just r  -> r
+         Nothing -> "--"
+      )
   xpText
 
 xpSentence :: PU [UNode String] String
