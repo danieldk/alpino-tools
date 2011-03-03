@@ -94,7 +94,7 @@ headRels = [Hd, Cmp, Crd, DLink, Rhd, Whd]
 -- * Heads of non-lexical nodes
 --
 dependants :: TreePos Full DSLabel -> [TreePos Full DSLabel]
-dependants = map lexOrHdDtr . siblings
+dependants = catMaybes . map lexOrHdDtr . siblings
 
 -- Get zippers for the siblings of a node.
 siblings :: TreePos Full DSLabel ->
@@ -113,13 +113,13 @@ childList = curLevel . firstChild
 
 -- If the node is a lexical node, return it as-is. If not, return its
 -- head daughter.
-lexOrHdDtr :: TreePos Full DSLabel -> TreePos Full DSLabel
+lexOrHdDtr :: TreePos Full DSLabel -> Maybe (TreePos Full DSLabel)
 lexOrHdDtr t = 
   case label t of
-    (LexLabel _ _ _) -> t
+    (LexLabel _ _ _) -> Just t
     (CatLabel _ _)   -> case filter isHead $ childList t of
-                           [c] -> c
-                           _   -> error "Malformed tree."
+                           [c] -> Just c
+                           _   -> Nothing
 
 -- Retrieve the relation of a node if it serves as a dependent.
 relAsDependent :: TreePos Full DSLabel -> Maybe Rel
