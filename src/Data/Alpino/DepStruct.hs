@@ -6,13 +6,10 @@ module Data.Alpino.DepStruct (
   DSLabel(..),
   Rel(..),
   depTriples,
-  heads,
-  relAsDependent,
-  siblings,
-  tzFold,
-  dependants
+  tzFold
 ) where
 
+import Control.Monad
 import Data.Maybe
 import Data.Tree
 import Data.Tree.Zipper
@@ -136,17 +133,11 @@ relAsDependent t =
     (CatLabel _ _)     -> Nothing
 
 depTriples :: TreePos Full DSLabel -> [DepTriple]
-depTriples t = foldl depTriples_ [] tHeadsDeps 
-  where tHeads     = heads t
-        deps       = map dependants tHeads
-        tHeadsDeps = zip tHeads deps
-
-depTriples_ :: [DepTriple] -> (TreePos Full DSLabel, [TreePos Full DSLabel]) ->
-  [DepTriple]
-depTriples_ acc (_, []) = acc
-depTriples_ acc (hd, dep:xs) =
-  depTriples_ (hdDepToTriple hd dep:acc) (hd, xs)
-
+depTriples =
+  map (uncurry hdDepToTriple) . hdsDeps . heads
+  where
+    hdsDeps = concat . map hdDeps           -- Find dependencies of given heads.
+    hdDeps = (zip . repeat) `ap` dependants -- Find dependencies of a head.
 
 hdDepToTriple :: TreePos Full DSLabel -> TreePos Full DSLabel ->
   DepTriple
