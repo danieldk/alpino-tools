@@ -1,12 +1,19 @@
 module Data.Alpino.DepStruct (
+
+  -- * Dependency structures
   AlpinoDS(..),
   Cat(..),
-  DepTriple(..),
-  DepTripleComponent(..),
   DSLabel(..),
   Rel(..),
+
+  -- * Dependency triples
+  DepTriple(..),
+  DepTripleComponent(..),
   depTriples,
+
+  -- * Utility functions
   tzFold
+
 ) where
 
 import Control.Monad
@@ -52,26 +59,33 @@ data Cat = SMain | NP | PPart | PPres | PP | SSub | Inf | Cp | DU | Ap
   | SVan | MWU | TopCat
   deriving (Show, Eq)
 
-tzFold :: (a -> TreePos Full b -> a) -> a -> TreePos Full b -> a
-tzFold f acc t =
-  foldSiblings $ foldChildren $ f acc t
-  where
-    foldChildren acc' =
-      case firstChild t of
-        Just c  -> tzFold f acc' c
-        Nothing -> acc'
-    foldSiblings acc' =
-      case next t of
-        Just s  -> tzFold f acc' s
-        Nothing -> acc'
+-- Dependency triples
 
-tzFilter :: (TreePos Full b -> Bool) -> TreePos Full b -> [TreePos Full b]
-tzFilter f =
-  tzFold adder []
+-- | The 'DepTriple' type represents a dependency that occurs in
+--   a dependency structure. The triple consists of the head, a dependent, and
+--   the relation between the head and the dependeny. For convenience, the
+--   triple is composed of two 'DepTripleComponent' instances: the first
+--   representing the head and its role in the relation, the second
+--   representing the dependant and its role in the relation.
+data DepTriple = DepTriple { tripleHead :: DepTripleComponent, tripleDep  ::
+DepTripleComponent } deriving (Eq, Show)
+
+-- | The 'DepTripleComponent' type represents a head or a dependant in a
+--   dependency relation.
+data DepTripleComponent = DepTripleComponent {
+  triplePos  :: String,
+  tripleRoot :: String,
+  tripleRel  :: Rel
+} deriving (Eq, Show)
+
+-- | Extract 'DepTriples' from the tree starting at the node represented by
+--   the 'TreePos' zipper.
+depTriples :: TreePos Full DSLabel -> [DepTriple]
+depTriples =
+  map (uncurry hdDepToTriple) . hdsDeps . heads
   where
-    adder acc t
-      | f t       = t:acc
-      | otherwise = acc
+    hdsDeps = concat . map hdDeps           -- Find dependencies of given heads.
+    hdDeps = (zip . repeat) `ap` dependants -- Find dependencies of a head.
 
 heads :: TreePos Full DSLabel -> [TreePos Full DSLabel]
 heads =
@@ -132,13 +146,6 @@ relAsDependent t =
                             Just rel
     (CatLabel _ _)     -> Nothing
 
-depTriples :: TreePos Full DSLabel -> [DepTriple]
-depTriples =
-  map (uncurry hdDepToTriple) . hdsDeps . heads
-  where
-    hdsDeps = concat . map hdDeps           -- Find dependencies of given heads.
-    hdDeps = (zip . repeat) `ap` dependants -- Find dependencies of a head.
-
 hdDepToTriple :: TreePos Full DSLabel -> TreePos Full DSLabel ->
   DepTriple
 hdDepToTriple hd dep = DepTriple hdTripleComp depTripleComp
@@ -148,13 +155,27 @@ hdDepToTriple hd dep = DepTriple hdTripleComp depTripleComp
     depTripleComp = DepTripleComponent (lexPos depLabel) (lexRoot depLabel) (fromJust $ relAsDependent dep)
     depLabel = label dep
 
-data DepTriple = DepTriple {
-  tripleHead :: DepTripleComponent,
-  tripleDep  :: DepTripleComponent
-} deriving (Eq, Show)
+-- Utility functions
 
-data DepTripleComponent = DepTripleComponent {
-  triplePos  :: String,
-  tripleRoot :: String,
-  tripleRel  :: Rel
-} deriving (Eq, Show)
+-- | Fold over a tree depth-first, starting at the node wrapped in the
+--   'TreePos' zipper.
+tzFold :: (a -> TreePos Full b -> a) -> a -> TreePos Full b -> a
+tzFold f acc t =
+  foldSiblings $ foldChildren $ f acc t
+  where
+    foldChildren acc' =
+      case firstChild t of
+        Just c  -> tzFold f acc' c
+        Nothing -> acc'
+    foldSiblings acc' =
+      case next t of
+        Just s  -> tzFold f acc' s
+        Nothing -> acc'
+
+tzFilter :: (TreePos Full b -> Bool) -> TreePos Full b -> [TreePos Full b]
+tzFilter f =
+  tzFold adder []
+  where
+    adder acc t
+      | f t       = t:acc
+      | otherwise = acc
