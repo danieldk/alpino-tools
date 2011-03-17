@@ -14,7 +14,8 @@ Build-Type:	Simple
 
 Library
   Exposed-Modules:      Data.Alpino.DepStruct, Data.Alpino.DepStruct.Pickle,
-                        Data.Alpino.Model, Data.Alpino.Model.Enumerator
+                        Data.Alpino.DepStruct.Triples, Data.Alpino.Model,
+                        Data.Alpino.Model.Enumerator
   Build-Depends:	base >= 4 && < 5, bytestring >= 0.9.1.7,
                         utf8-string >= 0.3.6, bytestring-lexing >= 0.2.1,
                         enumerator >= 0.4.5 && < 0.5, transformers >= 0.2.2.0,
