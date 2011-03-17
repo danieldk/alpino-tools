@@ -80,7 +80,8 @@ xpCat =
     -- Fixme: We should use pattern matching completeness check.
      \cat -> case lookup cat cats of
        Just c  -> c
-       Nothing -> error "Bug: Relation list is incomplete!") $
+       Nothing -> error "Bug: Category list is incomplete!"
+    )
   xpText
 
 rels :: [(Rel, String)]
@@ -101,7 +102,7 @@ xpRel =
       -- Fixme: We should use pattern matching completeness check.
        \rel -> case lookup rel rels of
          Just r  -> r
-         Nothing -> "--"
+         Nothing -> error "Bug: Relation list is incomplete!"
       )
   xpText
 
