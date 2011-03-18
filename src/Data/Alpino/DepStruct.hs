@@ -27,7 +27,9 @@ data DSLabel =
     -- | Category
     catRel  :: Rel,
     -- | Dependency relation
-    catCat  :: Cat
+    catCat  :: Cat,
+    -- | Coindexation
+    catIdx  :: Maybe Integer
    }
   | LexLabel {
     -- | Dependency relation
@@ -35,7 +37,9 @@ data DSLabel =
     -- | Part of speech tag
     lexPos  :: String,
     -- | Root/stem
-    lexRoot :: String
+    lexRoot :: String,
+    -- | Coindexation
+    lexIdx  :: Maybe Integer
   } deriving (Show, Eq)
 
 data Rel = Hdf | Hd | Cmp | Sup | Su | Obj1 | PObj1 | Obj2| Se | PC | VC
