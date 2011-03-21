@@ -13,11 +13,11 @@ import Data.Alpino.DepStruct
 
 data LabelOrRef =
   Label {
-    labelLabel :: DSLabel
+    lorLabel :: DSLabel
   }
   | Ref {
-  refRel :: Rel,
-  refIdx :: Integer
+    lorRel :: Rel,
+    lorIdx :: Integer
 } deriving (Show)
 
 -- | Pickler for Alpino dependency structures.
@@ -52,9 +52,9 @@ xpCatNode =
     \((rel, cat, idx), forest) ->
       DT.Node (Label $ CatLabel rel cat idx) forest,
     \t -> (
-      (labelRel $ labelLabel $ rootLabel t,
-       labelCat $ labelLabel $ rootLabel t,
-       labelIdx $ labelLabel $ rootLabel t),
+      (labelRel $ lorLabel $ rootLabel t,
+       labelCat $ lorLabel $ rootLabel t,
+       labelIdx $ lorLabel $ rootLabel t),
       subForest t)
     ) $
     xpElem "node"
@@ -70,10 +70,10 @@ xpLexNode =
     \(rel, pos, root, idx) ->
       DT.Node (Label $ LexLabel rel pos root idx) [],
     \t -> 
-      (labelRel  $ labelLabel $ rootLabel t,
-       labelPos  $ labelLabel $ rootLabel t,
-       labelRoot $ labelLabel $ rootLabel t,
-       labelIdx  $ labelLabel $ rootLabel t)) $
+      (labelRel  $ lorLabel $ rootLabel t,
+       labelPos  $ lorLabel $ rootLabel t,
+       labelRoot $ lorLabel $ rootLabel t,
+       labelIdx  $ lorLabel $ rootLabel t)) $
   xpElemAttrs "node"
     (xp4Tuple
       (xpAttr        "rel"   xpRel)
@@ -87,8 +87,8 @@ xpRefNode =
     \(rel, idx) ->
       DT.Node (Ref rel idx) [],
     \t ->
-      (refRel $ rootLabel t,
-       refIdx $ rootLabel t)) $
+      (lorRel $ rootLabel t,
+       lorIdx $ rootLabel t)) $
   xpElemAttrs "node"
     (xpPair
       (xpAttr "rel"   xpRel)
