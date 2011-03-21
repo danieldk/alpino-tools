@@ -37,48 +37,54 @@ data LabelOrRef =
 --resolveRefs :: [(Int, DSLabel)] -> DT.Tree LabelOrRef -> DT.Tree DSLabel
 --resolveRefs crLabels (DT.Tree lr sf) =
 
-type ResolveState = [(Integer, DSLabel)]
+type ResolveState = [(Integer, DT.Tree DSLabel)]
 
 
 -- Resolve nodes that only have a coreference index and a relation.
-resolveRefs :: DT.Tree LabelOrRef -> State ResolveState (DT.Tree DSLabel)
-resolveRefs (DT.Node lr sf) = do
-  label   <- resolveLabel lr
-  labelSf <- mapM resolveRefs sf
-  return $ DT.Node label labelSf 
-
-resolveLabel :: LabelOrRef -> State ResolveState DSLabel
-resolveLabel (Label l) = do
+resolveTree :: DT.Tree LabelOrRef -> State ResolveState (DT.Tree DSLabel)
+resolveTree (DT.Node (Label l) sf) = do
+  lsf <- mapM resolveTree sf
+  let node = DT.Node l lsf
+  case labelIdx l of
+    Just idx -> do
+      coRefs <- get
+      put $ (idx, node):coRefs
+      return node
+    Nothing  -> return node
+resolveTree (DT.Node (Ref rel idx) sf) = do
   coRefs <- get
-  let idx = case l of
-              CatLabel _ _ i   -> i
-              LexLabel _ _ _ i -> i
+  let (DT.Node l ds) = case lookup idx coRefs of
+                         Just n  -> n
+                         Nothing -> error "Invalid coreference"
+  let newLabel = l { labelRel = rel }
+  return $ DT.Node newLabel ds
 
-  case idx of
-    Just i  -> do
-      put $ (i, l):coRefs
-    Nothing -> return ()
-  return $ l
-resolveLabel (Ref rel idx) = do
-  corefs <- get
-  let corefLabel = case lookup idx corefs of
-                     (Just l) -> l
-                     Nothing  -> error "Invalid coreference"
-  return $ case corefLabel of
-            CatLabel _ _ _   -> corefLabel {catRel = rel}
-            LexLabel _ _ _ _ -> corefLabel {lexRel = rel}
+refTree :: DT.Tree DSLabel -> State ResolveState (DT.Tree LabelOrRef)
+refTree (DT.Node l sf) = do
+  coRefs <- get
+  case labelIdx l of
+    Just idx -> case lookup idx coRefs of
+                  Just coRef -> do
+                    return $ DT.Node (Ref (labelRel l) idx) []
+                  Nothing    -> do
+                    lrSf <- mapM refTree sf
+                    put $ (idx, DT.Node l sf) : coRefs
+                    return $ DT.Node (Label l) lrSf 
+    Nothing  -> do
+      lrSf <- mapM refTree sf
+      return $ DT.Node (Label l) lrSf
 
 --
-
 --refLabel :: DSLabel -> State ResolveState LabelOrRef
 --refLabel l = do
---  labels = get
---  let idx = case l of
---              CatLabel _ _ i   -> i
---              LexLabel _ _ _ i -> i
---  case idx of
---    Just i  ->
---    Nothing -> return ()
+--  labels <- get
+--  case labelIdx l of
+--    Just idx  -> case lookup idx labels of
+--                 Just coref -> return $ Ref (labelRel l) idx
+--                 Nothing    -> do
+--                  put $ (idx, l) : labels
+--                  return $ Label l
+--    Nothing -> return $ Label l
 
 xpCatNode :: PU [UNode String] (DT.Tree LabelOrRef)
 xpCatNode =
@@ -87,9 +93,9 @@ xpCatNode =
       DT.Node (Label $ CatLabel rel cat idx) forest,
     \t -> (
       (
-        catRel $ labelLabel $ rootLabel t,
-        catCat $ labelLabel $ rootLabel t,
-        catIdx $ labelLabel $ rootLabel t),
+        labelRel $ labelLabel $ rootLabel t,
+        labelCat $ labelLabel $ rootLabel t,
+        labelIdx $ labelLabel $ rootLabel t),
       subForest t)
     ) $
     xpElem "node"
@@ -105,10 +111,10 @@ xpLexNode =
     \(rel, pos, root, idx) ->
       DT.Node (Label $ LexLabel rel pos root idx) [],
     \t -> 
-      (lexRel  $ labelLabel $ rootLabel t,
-       lexPos  $ labelLabel $ rootLabel t,
-       lexRoot $ labelLabel $ rootLabel t,
-       lexIdx  $ labelLabel $ rootLabel t)) $
+      (labelRel  $ labelLabel $ rootLabel t,
+       labelPos  $ labelLabel $ rootLabel t,
+       labelRoot $ labelLabel $ rootLabel t,
+       labelIdx  $ labelLabel $ rootLabel t)) $
   xpElemAttrs "node"
     (xp4Tuple
       (xpAttr        "rel"   xpRel)

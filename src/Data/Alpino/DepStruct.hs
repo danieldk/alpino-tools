@@ -25,21 +25,21 @@ data AlpinoDS = AlpinoDS {
 data DSLabel =
    CatLabel {
     -- | Category
-    catRel  :: Rel,
+    labelRel  :: Rel,
     -- | Dependency relation
-    catCat  :: Cat,
+    labelCat  :: Cat,
     -- | Coindexation
-    catIdx  :: Maybe Integer
+    labelIdx  :: Maybe Integer
    }
   | LexLabel {
     -- | Dependency relation
-    lexRel  :: Rel,
+    labelRel  :: Rel,
     -- | Part of speech tag
-    lexPos  :: String,
+    labelPos  :: String,
     -- | Root/stem
-    lexRoot :: String,
+    labelRoot :: String,
     -- | Coindexation
-    lexIdx  :: Maybe Integer
+    labelIdx  :: Maybe Integer
   } deriving (Show, Eq)
 
 data Rel = Hdf | Hd | Cmp | Sup | Su | Obj1 | PObj1 | Obj2| Se | PC | VC

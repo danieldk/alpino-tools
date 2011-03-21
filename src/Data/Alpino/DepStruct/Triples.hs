@@ -109,9 +109,9 @@ hdDepToTriple :: TreePos Full DSLabel -> TreePos Full DSLabel ->
   DepTriple
 hdDepToTriple hd dep = DepTriple hdTripleComp depTripleComp
   where
-    hdTripleComp = DepTripleComponent (lexPos hdLabel) (lexRoot hdLabel) (lexRel hdLabel)
+    hdTripleComp = DepTripleComponent (labelPos hdLabel) (labelRoot hdLabel) (labelRel hdLabel)
     hdLabel = label hd
-    depTripleComp = DepTripleComponent (lexPos depLabel) (lexRoot depLabel) (fromJust $ relAsDependent dep)
+    depTripleComp = DepTripleComponent (labelPos depLabel) (labelRoot depLabel) (fromJust $ relAsDependent dep)
     depLabel = label dep
 
 -- Utility functions
