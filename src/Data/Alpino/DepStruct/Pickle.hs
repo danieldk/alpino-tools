@@ -1,9 +1,9 @@
 -- {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses,
 --              TypeSynonymInstances #-} 
 
-module Data.Alpino.DepStruct.Pickle (xpNode) where
+module Data.Alpino.DepStruct.Pickle (xpAlpinoDS) where
 
-import Control.Monad.State (State, get, put)
+import Control.Monad.State (State, evalState, get, put)
 import Data.Tree (rootLabel, subForest)
 import qualified Data.Tree as DT
 import Text.XML.Expat.Pickle
@@ -17,28 +17,25 @@ data LabelOrRef =
   | Ref {
   refRel :: Rel,
   refIdx :: Integer
-}
+} deriving (Show)
 
 -- | Pickler for Alpino dependency structures.
---xpAlpinoDS :: PU [UNode String] AlpinoDS
---xpAlpinoDS = 
---  xpElemNodes "alpino_ds" $
---  xpWrap (
---    uncurry AlpinoDS,
---    \n -> (
---      dsRoot n,
---      dsSentence n
---    )
---  ) $
---  xpPair
---    xpNode
---    xpSentence
-
---resolveRefs :: [(Int, DSLabel)] -> DT.Tree LabelOrRef -> DT.Tree DSLabel
---resolveRefs crLabels (DT.Tree lr sf) =
+xpAlpinoDS :: PU [UNode String] AlpinoDS
+xpAlpinoDS = 
+  xpElemNodes "alpino_ds" $
+  xpWrap (
+    \(lOrRefTree, sent) ->
+      AlpinoDS (evalState (resolveTree lOrRefTree) []) sent,
+    \n -> (
+      evalState (refTree $ dsRoot n) [],
+      dsSentence n
+    )
+  ) $
+  xpPair
+    xpNode
+    xpSentence
 
 type ResolveState = [(Integer, DT.Tree DSLabel)]
-
 
 -- Resolve nodes that only have a coreference index and a relation.
 resolveTree :: DT.Tree LabelOrRef -> State ResolveState (DT.Tree DSLabel)
@@ -49,13 +46,14 @@ resolveTree (DT.Node (Label l) sf) = do
     Just idx -> do
       coRefs <- get
       put $ (idx, node):coRefs
-      return node
-    Nothing  -> return node
-resolveTree (DT.Node (Ref rel idx) sf) = do
+    Nothing  -> return () 
+  return node
+
+resolveTree (DT.Node (Ref rel idx) _) = do
   coRefs <- get
   let (DT.Node l ds) = case lookup idx coRefs of
                          Just n  -> n
-                         Nothing -> error "Invalid coreference"
+                         Nothing -> error $ "Invalid coreference: " ++ (show idx) ++ "\nCoreferents:" ++ (show coRefs)
   let newLabel = l { labelRel = rel }
   return $ DT.Node newLabel ds
 
@@ -64,7 +62,7 @@ refTree (DT.Node l sf) = do
   coRefs <- get
   case labelIdx l of
     Just idx -> case lookup idx coRefs of
-                  Just coRef -> do
+                  Just _ -> do
                     return $ DT.Node (Ref (labelRel l) idx) []
                   Nothing    -> do
                     lrSf <- mapM refTree sf
@@ -74,17 +72,15 @@ refTree (DT.Node l sf) = do
       lrSf <- mapM refTree sf
       return $ DT.Node (Label l) lrSf
 
---
---refLabel :: DSLabel -> State ResolveState LabelOrRef
---refLabel l = do
---  labels <- get
---  case labelIdx l of
---    Just idx  -> case lookup idx labels of
---                 Just coref -> return $ Ref (labelRel l) idx
---                 Nothing    -> do
---                  put $ (idx, l) : labels
---                  return $ Label l
---    Nothing -> return $ Label l
+xpNode :: PU [UNode String] (DT.Tree LabelOrRef)
+xpNode =
+  xpAlt picklerIndex [xpLexNode, xpCatNode, xpRefNode]
+  where
+    picklerIndex (DT.Node lr _) = case lr of
+      (Label label) -> case label of
+        LexLabel _ _ _ _ -> 0
+        CatLabel _ _ _   -> 1
+      Ref _ _       -> 2
 
 xpCatNode :: PU [UNode String] (DT.Tree LabelOrRef)
 xpCatNode =
@@ -92,10 +88,9 @@ xpCatNode =
     \((rel, cat, idx), forest) ->
       DT.Node (Label $ CatLabel rel cat idx) forest,
     \t -> (
-      (
-        labelRel $ labelLabel $ rootLabel t,
-        labelCat $ labelLabel $ rootLabel t,
-        labelIdx $ labelLabel $ rootLabel t),
+      (labelRel $ labelLabel $ rootLabel t,
+       labelCat $ labelLabel $ rootLabel t,
+       labelIdx $ labelLabel $ rootLabel t),
       subForest t)
     ) $
     xpElem "node"
@@ -135,16 +130,6 @@ xpRefNode =
       (xpAttr "rel"   xpRel)
       (xpAttr "index" xpickle))
 
-xpNode :: PU [UNode String] (DT.Tree LabelOrRef)
-xpNode =
-  xpAlt picklerIndex [xpLexNode, xpCatNode, xpRefNode]
-  where
-    picklerIndex (DT.Node lr _) = case lr of
-      (Label label) -> case label of
-        LexLabel _ _ _ _ -> 0
-        CatLabel _ _ _   -> 1
-      Ref _ _       -> 2
-
 cats :: [(Cat, String)]
 cats = [(SMain, "smain"), (NP, "np"), (PPart, "ppart"), (PPres, "ppres"),
         (PP, "pp"), (SSub, "ssub"), (Inf, "inf"), (Cp, "cp"), (DU, "du"),
@@ -171,8 +156,8 @@ rels = [(Hdf, "hdf"), (Hd, "hd"), (Cmp, "cmp"), (Sup, "sup"),
         (Se, "se"), (PC, "pc"), (VC, "vc"), (SVP, "svp"), (PredC, "predc"),
         (Ld, "ld"), (Me, "me"), (PredM, "predm"), (ObComp, "obcomp"),
         (Mod, "mod"), (Body, "body"), (Det, "det"), (App, "app"),
-        (Whd, "whd"), (Rhd, "rhd"), (Cnj, "Cnj"), (Crd, "Crd"),
-        (Nucl, "Nucl"), (Sat, "sat"), (Tag, "tag"), (DP, "dp"),
+        (Whd, "whd"), (Rhd, "rhd"), (Cnj, "cnj"), (Crd, "crd"),
+        (Nucl, "nucl"), (Sat, "sat"), (Tag, "tag"), (DP, "dp"),
         (Top, "top"), (MWP, "mwp"), (DLink, "dlink"), (DashDash, "--")]
 
 xpRel :: PU String Rel
