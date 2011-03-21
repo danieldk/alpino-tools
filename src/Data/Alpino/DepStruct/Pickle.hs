@@ -6,6 +6,7 @@ module Data.Alpino.DepStruct.Pickle (xpAlpinoDS) where
 import Control.Monad.State (State, evalState, get, put)
 import Data.Tree (rootLabel, subForest)
 import qualified Data.Tree as DT
+import Text.Printf (printf)
 import Text.XML.Expat.Pickle
 
 import Data.Alpino.DepStruct 
@@ -34,44 +35,6 @@ xpAlpinoDS =
   xpPair
     xpNode
     xpSentence
-
-type ResolveState = [(Integer, DT.Tree DSLabel)]
-
--- Resolve nodes that only have a coreference index and a relation.
-resolveTree :: DT.Tree LabelOrRef -> State ResolveState (DT.Tree DSLabel)
-resolveTree (DT.Node (Label l) sf) = do
-  lsf <- mapM resolveTree sf
-  let node = DT.Node l lsf
-  case labelIdx l of
-    Just idx -> do
-      coRefs <- get
-      put $ (idx, node):coRefs
-    Nothing  -> return () 
-  return node
-
-resolveTree (DT.Node (Ref rel idx) _) = do
-  coRefs <- get
-  let (DT.Node l ds) = case lookup idx coRefs of
-                         Just n  -> n
-                         Nothing -> error $ "Invalid coreference: " ++ (show idx) ++ "\nCoreferents:" ++ (show coRefs)
-  let newLabel = l { labelRel = rel }
-  return $ DT.Node newLabel ds
-
-type RefState = [Integer]
-
-refTree :: DT.Tree DSLabel -> State RefState (DT.Tree LabelOrRef)
-refTree (DT.Node l sf) = do
-  coRefs <- get
-  case labelIdx l of
-    Just idx -> if elem idx coRefs then 
-                  return $ DT.Node (Ref (labelRel l) idx) []
-                else do
-                  lrSf <- mapM refTree sf
-                  put $ idx : coRefs
-                  return $ DT.Node (Label l) lrSf 
-    Nothing  -> do
-      lrSf <- mapM refTree sf
-      return $ DT.Node (Label l) lrSf
 
 xpNode :: PU [UNode String] (DT.Tree LabelOrRef)
 xpNode =
@@ -176,3 +139,58 @@ xpRel =
 xpSentence :: PU [UNode String] String
 xpSentence =
   xpElemNodes "sentence" (xpContent xpText0)
+
+--
+-- There is a discrepancy between our representation of dependency trees
+-- in Haskell, and those in XML. In the XML representation, coreferent nodes
+-- are only represented once in full. Subsequent occurances just have the
+-- 'index' attribute.
+--
+-- This representation is annoying in real-life use, because a function
+-- that processes a dependency structure has to resolve these 'reference
+-- nodes'. For these reason, we add the full structure to all instances of
+-- a coreferent node. Two functions are used:
+--
+-- resolveTree - expands reference nodes to full nodes (used during
+--               pickling)
+-- refTree     - replaces duplicate coreferent nodes by a reference (used
+--               during unpickling)
+--
+
+type ResolveState = [(Integer, DT.Tree DSLabel)]
+
+-- Resolve nodes that only have a coreference index and a relation.
+resolveTree :: DT.Tree LabelOrRef -> State ResolveState (DT.Tree DSLabel)
+resolveTree (DT.Node (Label l) sf) = do
+  lsf <- mapM resolveTree sf
+  let node = DT.Node l lsf
+  case labelIdx l of
+    Just idx -> do
+      coIndexed <- get
+      put $ (idx, node):coIndexed
+    Nothing  -> return () 
+  return node
+
+resolveTree (DT.Node (Ref rel idx) _) = do
+  coIndexed <- get
+  let (DT.Node l ds) = case lookup idx coIndexed of
+                         Just n  -> n
+                         Nothing -> error $ printf "Invalid coreference: %i" idx
+  let newLabel = l { labelRel = rel }
+  return $ DT.Node newLabel ds
+
+type RefState = [Integer]
+
+refTree :: DT.Tree DSLabel -> State RefState (DT.Tree LabelOrRef)
+refTree (DT.Node l sf) = do
+  coIndexed <- get
+  case labelIdx l of
+    Just idx -> if elem idx coIndexed then 
+                  return $ DT.Node (Ref (labelRel l) idx) []
+                else do
+                  lrSf <- mapM refTree sf
+                  put $ idx : coIndexed 
+                  return $ DT.Node (Label l) lrSf 
+    Nothing  -> do
+      lrSf <- mapM refTree sf
+      return $ DT.Node (Label l) lrSf
