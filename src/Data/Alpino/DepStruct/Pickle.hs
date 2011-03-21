@@ -57,17 +57,18 @@ resolveTree (DT.Node (Ref rel idx) _) = do
   let newLabel = l { labelRel = rel }
   return $ DT.Node newLabel ds
 
-refTree :: DT.Tree DSLabel -> State ResolveState (DT.Tree LabelOrRef)
+type RefState = [Integer]
+
+refTree :: DT.Tree DSLabel -> State RefState (DT.Tree LabelOrRef)
 refTree (DT.Node l sf) = do
   coRefs <- get
   case labelIdx l of
-    Just idx -> case lookup idx coRefs of
-                  Just _ -> do
-                    return $ DT.Node (Ref (labelRel l) idx) []
-                  Nothing    -> do
-                    lrSf <- mapM refTree sf
-                    put $ (idx, DT.Node l sf) : coRefs
-                    return $ DT.Node (Label l) lrSf 
+    Just idx -> if elem idx coRefs then 
+                  return $ DT.Node (Ref (labelRel l) idx) []
+                else do
+                  lrSf <- mapM refTree sf
+                  put $ idx : coRefs
+                  return $ DT.Node (Label l) lrSf 
     Nothing  -> do
       lrSf <- mapM refTree sf
       return $ DT.Node (Label l) lrSf
