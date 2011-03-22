@@ -12,6 +12,7 @@ module Data.Alpino.DepStruct.Triples (
 
 import Control.Monad (ap)
 import Data.Maybe (catMaybes, fromJust)
+import Data.Set (Set, fromList)
 import Data.Tree.Zipper
 
 import Data.Alpino.DepStruct
@@ -27,7 +28,7 @@ import Data.Alpino.DepStruct
 data DepTriple = DepTriple {
   tripleHead :: DepTripleComponent,
   tripleDep  :: DepTripleComponent
-} deriving (Eq, Show)
+} deriving (Eq, Ord, Show)
 
 -- | The 'DepTripleComponent' type represents a head or a dependant in a
 --   dependency relation.
@@ -35,13 +36,13 @@ data DepTripleComponent = DepTripleComponent {
   triplePos  :: String,
   tripleRoot :: String,
   tripleRel  :: Rel
-} deriving (Eq, Show)
+} deriving (Eq, Ord, Show)
 
 -- | Extract 'DepTriples' from the tree starting at the node represented by
 --   the 'TreePos' zipper.
-depTriples :: TreePos Full DSLabel -> [DepTriple]
+depTriples :: TreePos Full DSLabel -> Set DepTriple
 depTriples =
-  map (uncurry hdDepToTriple) . hdsDeps . heads
+  fromList . map (uncurry hdDepToTriple) . hdsDeps . heads
   where
     hdsDeps = concat . map hdDeps           -- Find dependencies of given heads.
     hdDeps = (zip . repeat) `ap` dependants -- Find dependencies of a head.
