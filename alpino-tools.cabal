@@ -1,5 +1,5 @@
 Name:		alpino-tools
-Version:	0.0.4
+Version:	0.0.5
 License:	OtherLicense
 License-file:	LICENSE
 Copyright:	Copyright 2010 Daniël de Kok
@@ -16,7 +16,7 @@ Library
   Exposed-Modules:	Data.Alpino.Model, Data.Alpino.Model.Enumerator
   Build-Depends:	base >= 4 && < 5, bytestring >= 0.9.1.7,
                         utf8-string >= 0.3.6, bytestring-lexing >= 0.2.1,
-                        enumerator >= 0.4.5 && < 0.5, transformers >= 0.2.2.0,
+                        enumerator >= 0.4.8 && < 0.5, transformers >= 0.2.2.0,
                         containers >= 0.3.0.0, random >= 1.0.0.3,
                         random-shuffle >= 0.0.2
   HS-Source-Dirs:       src
