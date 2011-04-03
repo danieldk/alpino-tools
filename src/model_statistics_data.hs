@@ -11,15 +11,13 @@ import Data.List (genericLength)
 import Text.Printf (printf)
 
 statistics :: Monad m => Iteratee [AM.TrainingInstance] m (Int, Int, Int)
-statistics = liftI $ step (0, 0, 0)
-    where step acc@(!lenSumAcc, !lenAcc, !maxLenAcc) chunk =
-              case chunk of
-                Chunks [] -> Continue $ returnI . step acc
-                Chunks xs -> Continue $ returnI . (step $
-                             (lenSumAcc + (sum $ map length xs),
-                              lenAcc + genericLength xs,
-                             max maxLenAcc $ maximum $ map length xs))
-                EOF -> Yield acc EOF
+statistics = continue $ step (0, 0, 0)
+    where step acc (Chunks []) = continue $ step acc
+          step (!lenSumAcc, !lenAcc, !maxLenAcc) (Chunks xs) =
+              continue $ (step $ (lenSumAcc + (sum $ map length xs),
+                                  lenAcc + genericLength xs,
+                                  max maxLenAcc $ maximum $ map length xs))
+          step acc EOF = yield acc EOF
 
 main :: IO ()
 main = do

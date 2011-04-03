@@ -13,7 +13,6 @@ module Data.Alpino.Model.Enumerator ( bestScore,
                                       concat,
                                       groupBy,
                                       groupByKey,
-                                      filter,
                                       filterFeatures,
                                       filterFeaturesFunctor,
                                       instanceGenerator,
@@ -27,17 +26,15 @@ module Data.Alpino.Model.Enumerator ( bestScore,
                                       trainingContextToContext
                                     ) where
 
-import Prelude hiding (concat, filter, head, mapM)
+import Prelude hiding (concat, filter, mapM)
 import Control.Exception.Base (Exception)
-import qualified Control.Monad as CM
 import Control.Monad.IO.Class (MonadIO(..), liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Alpino.Model as AM
 import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as BU
-import qualified Data.Enumerator as E
-import Data.Enumerator hiding (isEOF, length, map)
-import qualified Data.List as L
+import qualified Data.Enumerator.List as EL
+import Data.Enumerator hiding (isEOF, head, length, map)
 import qualified Data.Set as Set
 import Data.Typeable
 import Numeric.MaxEnt (Context(..))
@@ -55,14 +52,14 @@ instance Show InvalidDataException where
 -- | Retrieve the best score from a list of training instances.
 bestScore :: (Monad m) =>
                Enumeratee [AM.TrainingInstance] Double m b
-bestScore = E.map AM.bestScore'
+bestScore = EL.map AM.bestScore'
 
 -- |
 -- Filter features by exact names. A modifier function can be applied,
 -- for instance, the 'not' function would exclude the specified features.
 filterFeatures :: (Monad m) =>  (Bool -> Bool) -> Set.Set B.ByteString ->
                   Enumeratee AM.TrainingInstance AM.TrainingInstance m b
-filterFeatures f keepFeatures = E.map (AM.filterFeatures f keepFeatures)
+filterFeatures f keepFeatures = EL.map (AM.filterFeatures f keepFeatures)
 
 -- |
 -- Filter features by their functor. A modifier function can be applied,
@@ -70,7 +67,7 @@ filterFeatures f keepFeatures = E.map (AM.filterFeatures f keepFeatures)
 filterFeaturesFunctor :: (Monad m) =>  (Bool -> Bool) -> Set.Set B.ByteString ->
                          Enumeratee AM.TrainingInstance AM.TrainingInstance m b
 filterFeaturesFunctor f keepFeatures =
-    E.map (AM.filterFeaturesFunctor f keepFeatures)
+    EL.map (AM.filterFeaturesFunctor f keepFeatures)
 
 -- | Enumeratee grouping chunks according to an equality function.
 groupBy :: (Monad m, Eq a) => (a -> a -> Bool) ->
@@ -81,7 +78,7 @@ groupBy f = loop
             case h of
               Nothing -> return $ Continue k
               Just e -> do
-                     xs <- E.span $ f e
+                     xs <- EL.takeWhile $ f e
                      newStep <- lift $ runIteratee $ k $ Chunks [xs]
                      loop newStep
           loop step = return step
@@ -102,7 +99,7 @@ instanceParser = mapMaybeEnum (InvalidDataException "Could not parse instance.")
 -- | Enumeratee that converts `AM.TrainingInstance` to `B.ByteString`.
 instanceGenerator :: (Monad m) =>
                      Enumeratee AM.TrainingInstance B.ByteString m b
-instanceGenerator = E.map AM.trainingInstanceToBs
+instanceGenerator = EL.map AM.trainingInstanceToBs
 
 -- | Enumerator of lines read from the standard input.
 lineEnum :: MonadIO m => Enumerator B.ByteString m b
@@ -116,39 +113,18 @@ lineEnum = Iteratee . loop
                        runIteratee (k (Chunks [line])) >>= loop
           loop step = return step
 
--- | Enumeratee that filters with a predicate.
-filter :: (Monad m) => (a -> Bool) -> Enumeratee a a m b
-filter f = loop
-    where loop = checkDone $ continue . step
-          step k EOF = yield (Continue k) EOF
-          step k (Chunks []) = continue $ step k
-          step k (Chunks xs) = do
-            newStep <- lift $ runIteratee $ k $ Chunks $ L.filter f xs
-            loop newStep
-
 -- | Enumeratee concatenating lists.
 concat :: (Monad m) =>
               Enumeratee [a] a m b
 concat = loop
     where loop (Continue k) = do
-            h <- E.head
+            h <- EL.head
             case h of
               Nothing -> return $ Continue k
               Just e -> do
                      newStep <- lift $ runIteratee $ k $ Chunks e
                      loop newStep
           loop step = return step
-
-
-mapM :: Monad m => (ao -> m ai) -> Enumeratee ao ai m b
-mapM f = loop where
-    loop = checkDone $ continue . step
-    step k EOF = yield (Continue k) EOF
-    step k (Chunks []) = continue $ step k
-    step k (Chunks xs) = ( do
-                             ys <- lift $ CM.mapM f xs
-                             k $ Chunks ys
-                         ) >>== loop
 
 mapMaybeEnum :: (Exception e, Monad m) => e -> (ao -> Maybe ai) ->
                 Enumeratee ao ai m b
@@ -178,7 +154,7 @@ printByteString = continue step
 -- | Extract a random sample of @n@ instances from a context.
 randomSample :: (MonadIO m) => Int ->
                 Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
-randomSample n = mapM (liftIO . sampleFun)
+randomSample n = EL.mapM (liftIO . sampleFun)
     where sampleFun :: [AM.TrainingInstance] -> IO [AM.TrainingInstance]
           sampleFun i = do
             gen <- getStdRandom split
@@ -189,14 +165,14 @@ randomSample n = mapM (liftIO . sampleFun)
 -- /0.0/ for the rest).
 scoreToBinary :: (Monad m) =>
                  Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
-scoreToBinary = E.map AM.scoreToBinary
+scoreToBinary = EL.map AM.scoreToBinary
 
 -- |
 -- Enumerator recalculating scores, dividing a score of /1.0/ uniformly
 -- over instances with the highest quality score.
 scoreToBinaryNorm :: (Monad m) =>
                      Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
-scoreToBinaryNorm = E.map AM.scoreToBinaryNorm
+scoreToBinaryNorm = EL.map AM.scoreToBinaryNorm
 
 -- |
 -- Enumerator that normalized instance scores over all instances
