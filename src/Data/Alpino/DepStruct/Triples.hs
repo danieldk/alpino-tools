@@ -1,3 +1,13 @@
+-- |
+-- Module      : Data.Alpino.DepStruct.Triples
+-- Copyright   : (c) 2011 Daniël de Kok
+-- License     : Apache 2
+--
+-- Maintainer  : Daniël de Kok <me@danieldk.eu>
+-- Stability   : experimental
+--
+-- Definition and extraction of Alpino dependency triples.
+
 module Data.Alpino.DepStruct.Triples (
 
   -- * Dependency triples

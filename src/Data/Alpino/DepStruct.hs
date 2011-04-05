@@ -1,3 +1,13 @@
+-- |
+-- Module      : Data.Alpino.DepStruct
+-- Copyright   : (c) 2011 Daniël de Kok
+-- License     : Apache 2
+--
+-- Maintainer  : Daniël de Kok <me@danieldk.eu>
+-- Stability   : experimental
+--
+-- Definitions for Alpino dependency structures.
+
 module Data.Alpino.DepStruct (
 
   -- * Dependency structures

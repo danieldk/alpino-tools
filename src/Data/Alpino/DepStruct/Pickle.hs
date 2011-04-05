@@ -1,5 +1,12 @@
--- {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses,
---              TypeSynonymInstances #-} 
+-- |
+-- Module      : Data.Alpino.DepStruct.Pickle
+-- Copyright   : (c) 2011 Daniël de Kok
+-- License     : Apache 2
+--
+-- Maintainer  : Daniël de Kok <me@danieldk.eu>
+-- Stability   : experimental
+--
+-- Pickling and unpickling of Alpino dependency structures from XML.
 
 module Data.Alpino.DepStruct.Pickle (xpAlpinoDS) where
 
