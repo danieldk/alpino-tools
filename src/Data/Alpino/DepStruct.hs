@@ -35,11 +35,15 @@ data AlpinoDS = AlpinoDS {
 data DSLabel =
    CatLabel {
     -- | Category
-    labelRel  :: Rel,
+    labelRel   :: Rel,
     -- | Dependency relation
-    labelCat  :: Cat,
+    labelCat   :: Cat,
     -- | Coindexation
-    labelIdx  :: Maybe Integer
+    labelIdx   :: Maybe Integer,
+    -- | Start position
+    labelBegin :: Maybe Integer,
+    -- | End position
+    labelEnd   :: Maybe Integer
    }
   | LexLabel {
     -- | Dependency relation
@@ -49,7 +53,11 @@ data DSLabel =
     -- | Root/stem
     labelRoot :: String,
     -- | Coindexation
-    labelIdx  :: Maybe Integer
+    labelIdx  :: Maybe Integer,
+    -- | Start position
+    labelBegin :: Maybe Integer,
+    -- | End position
+    labelEnd   :: Maybe Integer
   } deriving (Show, Eq)
 
 data Rel = Hdf | Hd | Cmp | Sup | Su | Obj1 | PObj1 | Obj2| Se | PC | VC

@@ -49,44 +49,52 @@ xpNode =
   where
     picklerIndex (DT.Node lr _) = case lr of
       (Label label) -> case label of
-        LexLabel _ _ _ _ -> 0
-        CatLabel _ _ _   -> 1
+        LexLabel _ _ _ _ _ _ -> 0
+        CatLabel _ _ _ _ _   -> 1
       Ref _ _       -> 2
 
 xpCatNode :: PU [UNode String] (DT.Tree LabelOrRef)
 xpCatNode =
   xpWrap (
-    \((rel, cat, idx), forest) ->
-      DT.Node (Label $ CatLabel rel cat idx) forest,
+    \((rel, cat, idx, begin, end), forest) ->
+      DT.Node (Label $ CatLabel rel cat idx begin end) forest,
     \t -> (
-      (labelRel $ lorLabel $ rootLabel t,
-       labelCat $ lorLabel $ rootLabel t,
-       labelIdx $ lorLabel $ rootLabel t),
+      (labelRel   $ lorLabel $ rootLabel t,
+       labelCat   $ lorLabel $ rootLabel t,
+       labelIdx   $ lorLabel $ rootLabel t,
+       labelBegin $ lorLabel $ rootLabel t,
+       labelEnd   $ lorLabel $ rootLabel t),
       subForest t)
     ) $
     xpElem "node"
-    (xpTriple
+    (xp5Tuple
       (xpAttr        "rel"   xpRel)
       (xpAttr        "cat"   xpCat)
-      (xpAttrImplied "index" xpickle))
+      (xpAttrImplied "index" xpickle)
+      (xpAttrImplied "begin" xpickle)
+      (xpAttrImplied "end"   xpickle))
     (xpList xpNode)
 
 xpLexNode :: PU [UNode String] (DT.Tree LabelOrRef)
 xpLexNode =
   xpWrap (
-    \(rel, pos, root, idx) ->
-      DT.Node (Label $ LexLabel rel pos root idx) [],
+    \(rel, pos, root, idx, begin, end) ->
+      DT.Node (Label $ LexLabel rel pos root idx begin end) [],
     \t -> 
-      (labelRel  $ lorLabel $ rootLabel t,
-       labelPos  $ lorLabel $ rootLabel t,
-       labelRoot $ lorLabel $ rootLabel t,
-       labelIdx  $ lorLabel $ rootLabel t)) $
+      (labelRel   $ lorLabel $ rootLabel t,
+       labelPos   $ lorLabel $ rootLabel t,
+       labelRoot  $ lorLabel $ rootLabel t,
+       labelIdx   $ lorLabel $ rootLabel t,
+       labelBegin $ lorLabel $ rootLabel t,
+       labelEnd   $ lorLabel $ rootLabel t)) $
   xpElemAttrs "node"
-    (xp4Tuple
+    (xp6Tuple
       (xpAttr        "rel"   xpRel)
       (xpAttr        "pos"   xpText)
       (xpAttr        "root"  xpText)
-      (xpAttrImplied "index" xpickle))
+      (xpAttrImplied "index" xpickle)
+      (xpAttrImplied "begin" xpickle)
+      (xpAttrImplied "end"   xpickle))
 
 xpRefNode :: PU [UNode String] (DT.Tree LabelOrRef)
 xpRefNode =

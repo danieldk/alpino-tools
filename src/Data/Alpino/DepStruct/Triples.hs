@@ -63,7 +63,7 @@ heads =
 
 isHead :: TreePos Full DSLabel -> Bool
 isHead t = case label t of
-  (LexLabel rel _ _ _) -> rel `elem` headRels
+  (LexLabel rel _ _ _ _ _) -> rel `elem` headRels
   _                    -> False
 
 headRels :: [Rel]
@@ -97,8 +97,8 @@ childList = curLevel . firstChild
 lexOrHdDtr :: TreePos Full DSLabel -> Maybe (TreePos Full DSLabel)
 lexOrHdDtr t = 
   case label t of
-    (LexLabel _ _ _ _) -> Just t
-    (CatLabel _ _ _)   -> case filter isHead $ childList t of
+    (LexLabel _ _ _ _ _ _) -> Just t
+    (CatLabel _ _ _ _ _)   -> case filter isHead $ childList t of
                            [c] -> Just c
                            _   -> Nothing
 
@@ -106,15 +106,15 @@ lexOrHdDtr t =
 relAsDependent :: TreePos Full DSLabel -> Maybe Rel
 relAsDependent t =
   case label t of
-    (LexLabel rel _ _ _) -> if rel `elem` headRels then
+    (LexLabel rel _ _ _ _ _) -> if rel `elem` headRels then
                               case parent t of
                                 Just p -> case label p of
-                                  (LexLabel rel' _ _ _) -> Just rel'
-                                  (CatLabel rel' _ _)   -> Just rel'
+                                  (LexLabel rel' _ _ _ _ _) -> Just rel'
+                                  (CatLabel rel' _ _ _ _)   -> Just rel'
                                 Nothing -> Nothing
                             else
                              Just rel
-    (CatLabel _ _ _)     -> Nothing
+    (CatLabel _ _ _ _ _)     -> Nothing
 
 hdDepToTriple :: TreePos Full DSLabel -> TreePos Full DSLabel ->
   DepTriple
