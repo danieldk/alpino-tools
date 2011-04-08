@@ -68,11 +68,11 @@ data FeatureValue = FeatureValue {
 
 -- | Find the highest score of a context.
 bestScore :: [TrainingInstance] -> Double
-bestScore = foldl (\acc e -> max acc $ instanceScore e) 0.0
+bestScore = foldl (\acc -> max acc . instanceScore) 0.0
 
 -- | Find the highest score of a context (strict).
 bestScore' :: [TrainingInstance] -> Double
-bestScore' = foldl' (\acc e -> max acc $ instanceScore e) 0.0
+bestScore' = foldl' (\acc -> max acc . instanceScore) 0.0
 
 -- |
 -- Read a training instance from a `BU.ByteString`.
@@ -157,7 +157,7 @@ filterFeatures :: (Bool -> Bool) -> Set.Set B.ByteString -> TrainingInstance ->
 filterFeatures f keepFeatures i =
     i { instanceFeatures = FeaturesList $ filter keep $
                    parsedFeatures $ instanceFeatures i}
-    where keep fv = f $ Set.member (feature fv) keepFeatures
+    where keep = f . flip Set.member keepFeatures . feature
 
 -- |
 -- Filter features by their functor. A modifier function can be applied,
@@ -167,7 +167,7 @@ filterFeaturesFunctor :: (Bool -> Bool) -> Set.Set B.ByteString ->
 filterFeaturesFunctor f keepFeatures i =
     i { instanceFeatures = FeaturesList $ filter keep $ parsedFeatures $
                    instanceFeatures i}
-    where keep fv = f $ Set.member (functor $ feature fv) keepFeatures
+    where keep = f . flip Set.member keepFeatures . functor . feature
           functor func = B.split argOpen func !! 0
           argOpen = c2w '('
 
