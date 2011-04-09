@@ -14,8 +14,7 @@
 -- Please refer to the description of `bsToTrainingInstance` for more
 -- information about the format that is used.
 
-module Data.Alpino.Model ( FeatureValue(..),
-                           TrainingInstance(..),
+module Data.Alpino.Model ( TrainingInstance(..),
                            TrainingInstanceType(..),
                            bestScore,
                            bestScore',
@@ -38,7 +37,7 @@ import Data.List (foldl')
 import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import GHC.Word (Word8)
-import Numeric.MaxEnt (Context(..), Event(..))
+import Numeric.MaxEnt (Context(..), Event(..), FeatureValue(..))
 import System.Random (RandomGen)
 import System.Random.Shuffle (shuffle')
 import Text.Printf (printf)
@@ -58,15 +57,10 @@ data TrainingInstanceType = ParsingInstance
     deriving (Show, Eq)
 
 -- | Representation of features and values.
-data Features = FeaturesString B.ByteString -- ^ Features as a ByteString.
-              | FeaturesList [FeatureValue] -- ^ Features as a list.
-                deriving (Show, Eq)
-
--- | A feature and its corresponding value.
-data FeatureValue = FeatureValue {
-      feature :: B.ByteString,
-      value   :: Double
-} deriving (Show, Eq)
+data Features =
+    FeaturesString B.ByteString              -- ^ Features as a ByteString.
+  | FeaturesList [FeatureValue B.ByteString] -- ^ Features as a list.
+  deriving (Show, Eq)
 
 -- | Find the highest score of a context.
 bestScore :: [TrainingInstance] -> Double
@@ -122,9 +116,7 @@ trainingContextToContext = Context . map trainingInstanceToEvent
 
 trainingInstanceToEvent :: TrainingInstance -> Event B.ByteString
 trainingInstanceToEvent (TrainingInstance _ _ _ score fs) =
-    Event score fTuples
-        where parsedFs = parsedFeatures fs
-              fTuples = map (\(FeatureValue f v) -> (f, v)) parsedFs
+    Event score $ parsedFeatures fs
 
 instanceFieldSep :: GHC.Word.Word8
 instanceFieldSep = c2w '#'
@@ -146,7 +138,7 @@ generationMarker :: BU.ByteString
 generationMarker = BU.fromString "G"
 
 -- | Parsed representation of features.
-parsedFeatures :: Features -> [FeatureValue]
+parsedFeatures :: Features -> [FeatureValue B.ByteString]
 parsedFeatures (FeaturesList l)   = l
 parsedFeatures (FeaturesString s) = map fVal $ B.split fieldSep s
     where fVal p = FeatureValue f (fst $ fromJust $ readDouble valBs)
@@ -171,7 +163,7 @@ filterFeatures :: (Bool -> Bool) -> Set.Set B.ByteString -> TrainingInstance ->
 filterFeatures f keepFeatures i =
     i { instanceFeatures = FeaturesList $ filter keep $
                    parsedFeatures $ instanceFeatures i}
-    where keep fv = f $ Set.member (feature fv) keepFeatures
+    where keep fv = f $ Set.member (fvFeature fv) keepFeatures
 
 -- |
 -- Filter features by their functor. A modifier function can be applied,
@@ -181,7 +173,7 @@ filterFeaturesFunctor :: (Bool -> Bool) -> Set.Set B.ByteString ->
 filterFeaturesFunctor f keepFeatures i =
     i { instanceFeatures = FeaturesList $ filter keep $ parsedFeatures $
                    instanceFeatures i}
-    where keep fv = f $ Set.member (functor $ feature fv) keepFeatures
+    where keep fv = f $ Set.member (functor $ fvFeature fv) keepFeatures
           functor func = B.split argOpen func !! 0
           argOpen = c2w '('
 

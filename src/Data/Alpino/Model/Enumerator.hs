@@ -179,7 +179,7 @@ scoreToBinaryNorm = EL.map AM.scoreToBinaryNorm
 -- in the list.
 scoreToNorm :: (Monad m) =>
                Enumeratee [AM.TrainingInstance] [AM.TrainingInstance] m b
-scoreToNorm = E.map AM.scoreToNorm
+scoreToNorm = EL.map AM.scoreToNorm
 
 -- |
 -- Enumerator that converts a list of training instances to a `Context`.
@@ -187,4 +187,4 @@ scoreToNorm = E.map AM.scoreToNorm
 -- for instance by using the `groupByKey` enumerator.
 trainingContextToContext :: (Monad m) =>
                Enumeratee [AM.TrainingInstance] (Context B.ByteString) m b
-trainingContextToContext = E.map AM.trainingContextToContext
+trainingContextToContext = EL.map AM.trainingContextToContext
