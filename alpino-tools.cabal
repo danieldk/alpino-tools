@@ -21,7 +21,8 @@ Library
                         enumerator >= 0.4.8 && < 0.5, transformers >= 0.2.2.0,
                         containers >= 0.3.0.0, random >= 1.0.0.3,
                         random-shuffle >= 0.0.2, hexpat-pickle >= 0.4,
-                        rosezipper >= 0.2, mtl >= 2.0.1.0, maxent >= 0.0.2
+                        rosezipper >= 0.2, mtl >= 2.0.1.0, maxent >= 0.0.2,
+                        haskell98 >= 1.1
   HS-Source-Dirs:       src
   Ghc-Options:		-O2 -Wall
 
@@ -54,3 +55,8 @@ Executable at_model_statistics_data
   HS-Source-Dirs:       src
   main-is:              model_statistics_data.hs
   Ghc-Options:		-O2
+
+Executable at_model_tinyest
+  HS-Source-Dirs:       src
+  main-is:              model_tinyest.hs
+  Ghc-Options:          -O2
