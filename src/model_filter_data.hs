@@ -3,9 +3,10 @@ module Main where
 import Prelude hiding (concat)
 
 import Control.Monad (unless)
-import Data.Alpino.Model.Enumerator
+import Data.Alpino.Model.Conduit
 import Data.ByteString.UTF8 (fromString)
-import Data.Enumerator (($$), joinI, run_)
+import Data.Conduit (runResourceT, ($=), ($$))
+import qualified Data.Conduit.Binary as CB
 import Data.List as L
 import qualified Data.Set as Set
 import System.Console.GetOpt
@@ -31,9 +32,9 @@ main = do
 
   let keepFeatures = Set.fromList $ map fromString args
 
-  run_ $ lineEnum $$ joinI $ instanceParser $$
-       joinI $ filter keepFeatures $$
-       joinI $ instanceGenerator $$ printByteString
+  runResourceT (CB.sourceHandle stdin $= CB.lines $= bsToTrainingInstance $=
+    filter keepFeatures $= trainingInstanceToBS $= addNewLine $$
+    CB.sinkHandle stdout)
 
 data Option = FilterFeatures | FilterFunctors | InverseFilter
             deriving Eq

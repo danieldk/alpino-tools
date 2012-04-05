@@ -3,8 +3,9 @@ module Main where
 import Prelude hiding (concat)
 
 import Control.Monad (unless)
-import Data.Alpino.Model.Enumerator
-import Data.Enumerator (($$), joinI, run_)
+import Data.Alpino.Model.Conduit
+import Data.Conduit (runResourceT, ($=), ($$))
+import qualified Data.Conduit.Binary as CB
 import qualified Data.List as L
 import System.Console.GetOpt
 import System.Environment
@@ -18,10 +19,10 @@ main = do
                 Binary           -> scoreToBinary
                 BinaryNormalized -> scoreToBinaryNorm
                 Normalized       -> scoreToNorm
-    
-  run_ $ lineEnum $$ joinI $ instanceParser $$ joinI $ groupByKey $$
-       joinI $ score $$ joinI $ concat $$
-       joinI $ instanceGenerator $$ printByteString
+
+  runResourceT (CB.sourceHandle stdin $= CB.lines $= bsToTrainingInstance $=
+    groupByKey $= score $= concat $= trainingInstanceToBS $= addNewLine $$
+    CB.sinkHandle stdout)
 
 data Option = Binary | Normalized | BinaryNormalized
 

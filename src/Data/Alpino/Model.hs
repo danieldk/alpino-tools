@@ -23,12 +23,15 @@ module Data.Alpino.Model ( FeatureValue(..),
                            filterFeatures,
                            filterFeaturesFunctor,
                            randomSample,
+                           randomSample',
                            scoreToBinary,
                            scoreToBinaryNorm,
                            scoreToNorm,
                            trainingInstanceToBs
                          ) where
 
+import Control.Monad (liftM)
+import Control.Monad.Random.Class (MonadRandom)
 import qualified Data.ByteString as B
 import Data.ByteString.Internal (c2w)
 import Data.ByteString.Lex.Double (readDouble)
@@ -38,7 +41,7 @@ import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import GHC.Word (Word8)
 import System.Random (RandomGen)
-import System.Random.Shuffle (shuffle')
+import System.Random.Shuffle (shuffle', shuffleM)
 import Text.Printf (printf)
 
 -- | A training instance.
@@ -178,6 +181,12 @@ randomSample g n i
     | instLen <= n = i
     | otherwise = take n $ shuffle' i instLen g
     where instLen = length i
+
+randomSample' :: MonadRandom m => Int -> [TrainingInstance] ->
+  m [TrainingInstance]
+randomSample' n i
+  | length i <= n = return $ i
+  | otherwise     = take n `liftM` shuffleM i
 
 -- |
 -- Convert the quality scores to binary scores. The instances
