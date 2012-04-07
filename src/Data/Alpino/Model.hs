@@ -23,7 +23,6 @@ module Data.Alpino.Model ( FeatureValue(..),
                            filterFeatures,
                            filterFeaturesFunctor,
                            randomSample,
-                           randomSample',
                            scoreToBinary,
                            scoreToBinaryNorm,
                            scoreToNorm,
@@ -40,8 +39,7 @@ import Data.List (foldl')
 import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import GHC.Word (Word8)
-import System.Random (RandomGen)
-import System.Random.Shuffle (shuffle', shuffleM)
+import System.Random.Shuffle (shuffleM)
 import Text.Printf (printf)
 
 -- | A training instance.
@@ -175,16 +173,9 @@ filterFeaturesFunctor f keepFeatures i =
           argOpen = c2w '('
 
 -- | Extract a random sample from a list of instances.
-randomSample :: RandomGen g => g -> Int -> [TrainingInstance] ->
-                [TrainingInstance]
-randomSample g n i
-    | instLen <= n = i
-    | otherwise = take n $ shuffle' i instLen g
-    where instLen = length i
-
-randomSample' :: MonadRandom m => Int -> [TrainingInstance] ->
+randomSample :: MonadRandom m => Int -> [TrainingInstance] ->
   m [TrainingInstance]
-randomSample' n i
+randomSample n i
   | length i <= n = return $ i
   | otherwise     = take n `liftM` shuffleM i
 

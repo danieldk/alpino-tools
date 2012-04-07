@@ -76,7 +76,7 @@ groupByKey = CL.groupBy keyEq
 
 randomSample :: MonadRandom m => Int ->
   Conduit [AM.TrainingInstance] m [AM.TrainingInstance]
-randomSample size = CL.mapM $ AM.randomSample' size
+randomSample size = CL.mapM $ AM.randomSample size
 
 -- |
 -- Conduit recaculating scores to binary scores (/1.0/ for best,
