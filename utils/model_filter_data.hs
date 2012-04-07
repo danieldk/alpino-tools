@@ -21,7 +21,7 @@ main = do
   let filter0 = if elem FilterFeatures options
                 then filterFeatures
                 else filterFeaturesFunctor
-  let filter = if elem InverseFilter options
+  let filter1 = if elem InverseFilter options
                then filter0 not
                else filter0 id
 
@@ -33,7 +33,7 @@ main = do
   let keepFeatures = Set.fromList $ map fromString args
 
   runResourceT (CB.sourceHandle stdin $= CB.lines $= bsToTrainingInstance $=
-    filter keepFeatures $= trainingInstanceToBS $= addNewLine $$
+    filter1 keepFeatures $= trainingInstanceToBS $= addNewLine $$
     CB.sinkHandle stdout)
 
 data Option = FilterFeatures | FilterFunctors | InverseFilter
@@ -59,4 +59,4 @@ getOptions = do
 
   case options of
     []        -> return ([FilterFeatures], keep)
-    otherwise -> return (options, keep)
+    _         -> return (options, keep)

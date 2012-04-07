@@ -30,20 +30,20 @@ Executable at_model_rescore_data
   HS-Source-Dirs:       utils
   main-is:              model_rescore_data.hs
   Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.4.*
-  Ghc-Options:          -O2
+  Ghc-Options:          -O2 -Wall
 
 Executable at_model_filter_data
   HS-Source-Dirs:       utils
   main-is:              model_filter_data.hs
   Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.4.*,
                         containers == 0.4.*, utf8-string == 0.3.*
-  Ghc-Options:          -O2
+  Ghc-Options:          -O2 -Wall
 
 Executable at_model_oracle
   HS-Source-Dirs:       utils
   main-is:              model_oracle.hs
   Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.4.*
-  Ghc-Options:          -O2
+  Ghc-Options:          -O2 -Wall
 
 Executable at_model_random_sample
   HS-Source-Dirs:       utils
@@ -51,10 +51,10 @@ Executable at_model_random_sample
   Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.4.*,
                         resourcet == 0.3.*, mtl == 2.0.1.*,
                         MonadRandom == 0.1.*
-  Ghc-Options:          -O2
+  Ghc-Options:          -O2 -Wall -fno-warn-orphans
 
 Executable at_model_statistics_data
   HS-Source-Dirs:       utils
   main-is:              model_statistics_data.hs
   Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.4.*
-  Ghc-Options:          -O2
+  Ghc-Options:          -O2 -Wall
