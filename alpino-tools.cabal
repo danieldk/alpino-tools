@@ -16,13 +16,13 @@ Library
   Exposed-Modules:      Data.Alpino.DepStruct, Data.Alpino.DepStruct.Pickle,
                         Data.Alpino.DepStruct.Triples, Data.Alpino.Model,
                         Data.Alpino.Model.Conduit
-  Build-Depends:	base >= 4 && < 5, bytestring >= 0.9.1.7,
-                        utf8-string >= 0.3.6, bytestring-lexing >= 0.2.1,
-                        conduit == 0.4.*, transformers >= 0.2.2.0,
-                        containers >= 0.3.0.0, MonadRandom == 0.1.*,
-                        random >= 1.0.0.3, random-shuffle >= 0.0.2,
-                        hexpat-pickle >= 0.4, resourcet == 0.3.*,
-                        rosezipper >= 0.2, mtl >= 2.0.1.0
+  Build-Depends:	base >= 4 && < 5, bytestring == 0.9.2.*,
+                        containers == 0.4.*, utf8-string == 0.3.*,
+                        bytestring-lexing == 0.4.*,
+                        conduit == 0.4.*, MonadRandom == 0.1.*,
+                        random-shuffle == 0.0.3, hexpat-pickle == 0.5,
+                        resourcet == 0.3.*, rosezipper == 0.2,
+                        mtl == 2.0.1.*
   HS-Source-Dirs:       src
   Ghc-Options:		-O2 -Wall
 
