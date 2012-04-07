@@ -1,16 +1,16 @@
-Name:		       alpino-tools
-Version:	     0.1.0
-License:	     OtherLicense
-License-file:	 LICENSE
-Copyright:	   Copyright 2010 Daniël de Kok
-Author:		     Daniël de Kok <me@danieldk.eu>
-Maintainer:	   Daniël de Kok <me@danieldk.eu>
-Homepage:	     http://github.com/danieldk/alpino-tools
-Category:	     Natural Language Processing, Data
-Synopsis:	     Alpino data manipulation tools
-Description:	 Tools for manipulating data for the Alpino parser for Dutch.
+Name:          alpino-tools
+Version:       0.1.0
+License:       OtherLicense
+License-file:  LICENSE
+Copyright:     Copyright 2010 Daniël de Kok
+Author:        Daniël de Kok <me@danieldk.eu>
+Maintainer:    Daniël de Kok <me@danieldk.eu>
+Homepage:      http://github.com/danieldk/alpino-tools
+Category:      Natural Language Processing, Data
+Synopsis:      Alpino data manipulation tools
+Description:   Tools for manipulating data for the Alpino parser for Dutch.
 Cabal-Version: >= 1.8
-Build-Type:	   Simple
+Build-Type:    Simple
 
 Library
   Exposed-Modules:      Data.Alpino.DepStruct, Data.Alpino.DepStruct.Pickle,
@@ -24,7 +24,7 @@ Library
                         resourcet == 0.3.*, rosezipper == 0.2,
                         mtl == 2.0.1.*
   HS-Source-Dirs:       src
-  Ghc-Options:		      -O2 -Wall
+  Ghc-Options:          -O2 -Wall
 
 Executable at_model_rescore_data
   HS-Source-Dirs:       utils
