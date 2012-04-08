@@ -1,4 +1,4 @@
-{-# OPTIONS -XBangPatterns #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Main where
 
@@ -28,7 +28,7 @@ main = do
   (evts, ctxs, maxCtx) <- runResourceT (CB.sourceHandle stdin $=
     CB.lines $= bsToTrainingInstance $= groupByKey $$ statistics)
 
-  putStrLn $ "Contexts: " ++ (show ctxs)
-  putStrLn $ "Max. events: " ++ (show maxCtx)
-  putStrLn $ "Avg. events: " ++ (printf "%.2f" $ (fromIntegral evts / fromIntegral ctxs :: Double))
+  putStrLn $ printf "Contexts: %d" ctxs
+  putStrLn $ printf "Max. events: %d" maxCtx
+  putStrLn $ printf "Avg. events: %.2f" (fromIntegral evts / fromIntegral ctxs :: Double)
 

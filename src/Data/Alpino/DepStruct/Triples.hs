@@ -21,7 +21,7 @@ module Data.Alpino.DepStruct.Triples (
 ) where
 
 import Control.Monad (ap)
-import Data.Maybe (catMaybes, fromJust)
+import Data.Maybe (fromJust, mapMaybe)
 import Data.Set (Set, fromList)
 import Data.Tree.Zipper
 
@@ -54,7 +54,7 @@ depTriples :: TreePos Full DSLabel -> Set DepTriple
 depTriples =
   fromList . map (uncurry hdDepToTriple) . hdsDeps . heads
   where
-    hdsDeps = concat . map hdDeps           -- Find dependencies of given heads.
+    hdsDeps = concatMap hdDeps           -- Find dependencies of given heads.
     hdDeps = (zip . repeat) `ap` dependants -- Find dependencies of a head.
 
 heads :: TreePos Full DSLabel -> [TreePos Full DSLabel]
@@ -75,14 +75,14 @@ headRels = [Hd, Cmp, Crd, DLink, Rhd, Whd]
 -- * Heads of non-lexical nodes
 --
 dependants :: TreePos Full DSLabel -> [TreePos Full DSLabel]
-dependants = catMaybes . map lexOrHdDtr . siblings
+dependants = mapMaybe lexOrHdDtr . siblings
 
 -- Get zippers for the siblings of a node.
 siblings :: TreePos Full DSLabel ->
   [TreePos Full DSLabel]
 siblings t =
   case parent t of
-    (Just p) -> filter ((/=) t) $ childList p
+    (Just p) -> filter (t /=) $ childList p
     Nothing  -> [] -- No parent? No siblings.
 
 -- Get zippers fo the children of a node.
@@ -97,8 +97,8 @@ childList = curLevel . firstChild
 lexOrHdDtr :: TreePos Full DSLabel -> Maybe (TreePos Full DSLabel)
 lexOrHdDtr t = 
   case label t of
-    (LexLabel _ _ _ _ _ _) -> Just t
-    (CatLabel _ _ _ _ _)   -> case filter isHead $ childList t of
+    (LexLabel {}) -> Just t
+    (CatLabel {}) -> case filter isHead $ childList t of
                            [c] -> Just c
                            _   -> Nothing
 
@@ -114,7 +114,7 @@ relAsDependent t =
                                 Nothing -> Nothing
                             else
                              Just rel
-    (CatLabel _ _ _ _ _)     -> Nothing
+    (CatLabel {})            -> Nothing
 
 hdDepToTriple :: TreePos Full DSLabel -> TreePos Full DSLabel ->
   DepTriple

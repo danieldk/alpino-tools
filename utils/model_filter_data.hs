@@ -18,10 +18,10 @@ main :: IO ()
 main = do
   (options, args) <- getOptions
 
-  let filter0 = if elem FilterFeatures options
+  let filter0 = if FilterFeatures `elem` options
                 then filterFeatures
                 else filterFeaturesFunctor
-  let filter1 = if elem InverseFilter options
+  let filter1 = if InverseFilter `elem` options
                then filter0 not
                else filter0 id
 

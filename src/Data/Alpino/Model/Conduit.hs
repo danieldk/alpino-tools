@@ -38,7 +38,7 @@ instance Show InvalidDataException where
 
 addNewLine :: Monad m => Conduit B.ByteString m B.ByteString
 addNewLine =
-  CL.map (\bs -> B.snoc bs 10)
+  CL.map (`B.snoc` 10)
 
 -- | Retrieve the best score from a list of training instances.
 bestScore :: Monad m => Conduit [AM.TrainingInstance] m Double
@@ -105,7 +105,7 @@ bsToTrainingInstance = CL.mapM cvtBS
   where
     cvtBS b =
       case AM.bsToTrainingInstance b of
-        Just i -> return $ i
+        Just i -> return i
         Nothing -> monadThrow $
           InvalidDataException "Could not parse instance."
 

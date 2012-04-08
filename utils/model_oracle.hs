@@ -1,4 +1,4 @@
-{-# OPTIONS -XBangPatterns #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Main where
 
@@ -13,16 +13,15 @@ import Text.Printf (printf)
 
 sumCount :: (Monad m, Fractional a, Integral b) => Sink a m (a, b)
 sumCount =
-	CL.fold handleCtx (0, 0)
-	where
-		handleCtx (!scoreSum, !ctxs) score =
-			(scoreSum + score, ctxs + 1)
+        CL.fold handleCtx (0, 0)
+        where
+                handleCtx (!scoreSum, !ctxs) score =
+                        (scoreSum + score, ctxs + 1)
 
 main :: IO ()
 main = do
   (scoreSum, scoreLen) <- runResourceT (CB.sourceHandle stdin $= CB.lines $=
-  	bsToTrainingInstance $= groupByKey $= bestScore $$ sumCount) :: IO (Double, Int)
+          bsToTrainingInstance $= groupByKey $= bestScore $$ sumCount) :: IO (Double, Int)
 
   putStrLn $ printf "Contexts: %d" scoreLen
   putStrLn $ printf "Oracle: %.4f" (scoreSum / fromIntegral scoreLen)
-

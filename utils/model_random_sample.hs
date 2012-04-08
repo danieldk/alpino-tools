@@ -39,7 +39,7 @@ optionInfo =
 usage :: String -> String
 usage name = "Usage: " ++ name ++ " <OPTION>\n"
 
-getOptions :: IO ([Option])
+getOptions :: IO [Option]
 getOptions = do
   args <- getArgs
   let (options, _, errors) = getOpt Permute optionInfo args

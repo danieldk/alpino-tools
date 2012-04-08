@@ -98,7 +98,7 @@ bsToTrainingInstance l
     | length lineParts /= 5 = Nothing
     | otherwise = Just $ TrainingInstance instType key n score features
     where lineParts = B.split instanceFieldSep l
-          instType = bsToType $ lineParts !! 0
+          instType = bsToType $ head lineParts
           key = lineParts !! 1
           n = lineParts !! 2
           score = fst . fromJust . readDouble $ lineParts !! 3
@@ -169,14 +169,14 @@ filterFeaturesFunctor f keepFeatures i =
     i { instanceFeatures = FeaturesList $ filter keep $ parsedFeatures $
                    instanceFeatures i}
     where keep = f . flip Set.member keepFeatures . functor . feature
-          functor func = B.split argOpen func !! 0
+          functor = head . B.split argOpen
           argOpen = c2w '('
 
 -- | Extract a random sample from a list of instances.
 randomSample :: MonadRandom m => Int -> [TrainingInstance] ->
   m [TrainingInstance]
 randomSample n i
-  | length i <= n = return $ i
+  | length i <= n = return i
   | otherwise     = take n `liftM` shuffleM i
 
 -- |
@@ -208,4 +208,4 @@ scoreToNorm :: [TrainingInstance] -> [TrainingInstance]
 scoreToNorm ctx = map (rescoreEvt norm) ctx
     where norm = sum $ map instanceScore ctx
           rescoreEvt n evt =
-              evt { instanceScore = (instanceScore evt) / n }
+              evt { instanceScore = instanceScore evt / n }

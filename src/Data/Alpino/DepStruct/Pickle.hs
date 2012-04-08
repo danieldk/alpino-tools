@@ -11,6 +11,7 @@
 module Data.Alpino.DepStruct.Pickle (xpAlpinoDS) where
 
 import Control.Monad.State (State, evalState, get, put)
+import Data.Maybe (fromMaybe)
 import Data.Tree (rootLabel, subForest)
 import qualified Data.Tree as DT
 import Text.Printf (printf)
@@ -49,9 +50,9 @@ xpNode =
   where
     picklerIndex (DT.Node lr _) = case lr of
       (Label label) -> case label of
-        LexLabel _ _ _ _ _ _ -> 0
-        CatLabel _ _ _ _ _   -> 1
-      Ref _ _       -> 2
+        LexLabel {} -> 0
+        CatLabel {} -> 1
+      Ref{}         -> 2
 
 xpCatNode :: PU [UNode String] (DT.Tree LabelOrRef)
 xpCatNode =
@@ -123,9 +124,7 @@ xpCat =
     "Could not parse 'cat' attribute."
     (\cat -> lookup cat $ map (\(a, b) -> (b, a)) cats,
     -- Fixme: We should use pattern matching completeness check.
-     \cat -> case lookup cat cats of
-       Just c  -> c
-       Nothing -> error "Bug: Category list is incomplete!"
+     fromMaybe (error "Bug: Category list is incomplete!") . flip lookup cats
     )
   xpText
 
@@ -145,9 +144,7 @@ xpRel =
     "Could not parse 'rel' attribute."
       (\rel -> lookup rel $ map (\(a, b) -> (b, a)) rels,
       -- Fixme: We should use pattern matching completeness check.
-       \rel -> case lookup rel rels of
-         Just r  -> r
-         Nothing -> error "Bug: Relation list is incomplete!"
+       fromMaybe (error "Bug: Relation list is incomplete!") . flip lookup rels
       )
   xpText
 
@@ -188,9 +185,7 @@ resolveTree (DT.Node (Label l) sf) = do
 
 resolveTree (DT.Node (Ref rel idx) _) = do
   coIndexed <- get
-  let (DT.Node l ds) = case lookup idx coIndexed of
-                         Just n  -> n
-                         Nothing -> error $ printf "Invalid coreference: %i" idx
+  let (DT.Node l ds) = fromMaybe (error $ printf "Invalid coreference: %i" idx) $ lookup idx coIndexed
   let newLabel = l { labelRel = rel }
   return $ DT.Node newLabel ds
 
@@ -200,7 +195,7 @@ refTree :: DT.Tree DSLabel -> State RefState (DT.Tree LabelOrRef)
 refTree (DT.Node l sf) = do
   coIndexed <- get
   case labelIdx l of
-    Just idx -> if elem idx coIndexed then 
+    Just idx -> if idx `elem` coIndexed then 
                   return $ DT.Node (Ref (labelRel l) idx) []
                 else do
                   lrSf <- mapM refTree sf
