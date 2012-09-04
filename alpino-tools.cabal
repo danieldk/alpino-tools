@@ -17,7 +17,7 @@ Library
   Build-Depends:        base >= 4 && < 5, bytestring == 0.9.2.*,
                         containers == 0.4.*, utf8-string == 0.3.*,
                         bytestring-lexing == 0.4.*,
-                        conduit == 0.4.*, MonadRandom == 0.1.*,
+                        conduit == 0.5.*, MonadRandom == 0.1.*,
                         random-shuffle == 0.0.4, resourcet == 0.3.*,
                         mtl >= 2.0.1 && < 2.2
   HS-Source-Dirs:       src
@@ -26,26 +26,26 @@ Library
 Executable at_model_rescore_data
   HS-Source-Dirs:       utils
   main-is:              model_rescore_data.hs
-  Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.4.*
+  Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.5.*
   Ghc-Options:          -O2 -Wall
 
 Executable at_model_filter_data
   HS-Source-Dirs:       utils
   main-is:              model_filter_data.hs
-  Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.4.*,
+  Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.5.*,
                         containers == 0.4.*, utf8-string == 0.3.*
   Ghc-Options:          -O2 -Wall
 
 Executable at_model_oracle
   HS-Source-Dirs:       utils
   main-is:              model_oracle.hs
-  Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.4.*
+  Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.5.*
   Ghc-Options:          -O2 -Wall
 
 Executable at_model_random_sample
   HS-Source-Dirs:       utils
   main-is:              model_random_sample.hs
-  Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.4.*,
+  Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.5.*,
                         resourcet == 0.3.*, mtl >= 2.0.1 && < 2.2,
                         MonadRandom == 0.1.*
   Ghc-Options:          -O2 -Wall -fno-warn-orphans
@@ -53,5 +53,5 @@ Executable at_model_random_sample
 Executable at_model_statistics_data
   HS-Source-Dirs:       utils
   main-is:              model_statistics_data.hs
-  Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.4.*
+  Build-Depends:        base >= 4 && < 5, alpino-tools, conduit == 0.5.*
   Ghc-Options:          -O2 -Wall

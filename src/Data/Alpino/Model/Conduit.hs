@@ -21,8 +21,9 @@ import           Control.Exception.Base (Exception)
 import           Control.Monad.Random.Class (MonadRandom(..))
 import qualified Data.Alpino.Model as AM
 import qualified Data.ByteString as B
-import           Data.Conduit (Conduit, ConduitStateResult(StateProducing),
-                   conduitState)
+import           Data.Conduit (Conduit)
+import           Data.Conduit.Util (ConduitStateResult(StateProducing),
+                                    conduitState)
 import qualified Data.Conduit.List as CL
 import qualified Data.Set as Set
 import Data.Typeable
