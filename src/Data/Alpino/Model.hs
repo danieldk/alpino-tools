@@ -1,3 +1,5 @@
+{-# LANGUAGE DoAndIfThenElse #-}
+
 -- |
 -- Module      : Data.Alpino.Model
 -- Copyright   : (c) 2010 Daniël de Kok
@@ -19,19 +21,23 @@ module Data.Alpino.Model ( FeatureValue(..),
                            TrainingInstanceType(..),
                            bestScore,
                            bestScore',
-                           bsToTrainingInstance,
                            filterFeatures,
                            filterFeaturesFunctor,
                            randomSample,
                            scoreToBinary,
                            scoreToBinaryNorm,
                            scoreToNorm,
+                           trainingInstance,
                            trainingInstanceToBs
                          ) where
 
 import Control.Monad (liftM)
 import Control.Monad.Random.Class (MonadRandom)
+import qualified Data.Attoparsec.ByteString as A
+import Data.Attoparsec.Combinator (sepBy)
+import qualified Data.Attoparsec.ByteString.Char8 as AC
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Internal (c2w)
 import Data.ByteString.Lex.Double (readDouble)
 import qualified Data.ByteString.UTF8 as BU
@@ -41,12 +47,13 @@ import qualified Data.Set as Set
 import GHC.Word (Word8)
 import System.Random.Shuffle (shuffleM)
 import Text.Printf (printf)
+import qualified Text.Show.ByteString as SB
 
 -- | A training instance.
 data TrainingInstance = TrainingInstance {
       instanceType     :: TrainingInstanceType, -- ^ Type of training instance
       instanceKey      :: B.ByteString,         -- ^ Training instance identifier
-      instanceN        :: B.ByteString,
+      instanceN        :: Int,
       instanceScore    :: Double,               -- ^ Quality score
       instanceFeatures :: Features              -- ^ Features
 } deriving (Show, Eq)
@@ -63,8 +70,8 @@ data Features = FeaturesString B.ByteString -- ^ Features as a ByteString.
 
 -- | A feature and its corresponding value.
 data FeatureValue = FeatureValue {
-      feature :: B.ByteString,
-      value   :: Double
+      fvFeature :: B.ByteString,
+      fvValue   :: Double
 } deriving (Show, Eq)
 
 -- | Find the highest score of a context.
@@ -93,34 +100,26 @@ bestScore' = foldl' (\acc -> max acc . instanceScore) 0.0
 --
 -- 5. A list of features and values. List elements are separated by
 --   the vertical bar (/|/), and have the following form: /value@feature/
-bsToTrainingInstance :: B.ByteString -> Maybe TrainingInstance
-bsToTrainingInstance l
-    | length lineParts /= 5 = Nothing
-    | otherwise = Just $ TrainingInstance instType key n score features
-    where lineParts = B.split instanceFieldSep l
-          instType = bsToType $ head lineParts
-          key = lineParts !! 1
-          n = lineParts !! 2
-          score = fst . fromJust . readDouble $ lineParts !! 3
-          features = FeaturesString $ lineParts !! 4
+-- bsToTrainingInstance :: B.ByteString -> Maybe TrainingInstance
+-- bsToTrainingInstance l
+--     | length lineParts /= 5 = Nothing
+--     | otherwise = Just $ TrainingInstance instType key n score features
+--     where lineParts = B.split instanceFieldSep l
+--           instType = bsToType $ head lineParts
+--           key = lineParts !! 1
+--           n = lineParts !! 2
+--           score = fst . fromJust . readDouble $ lineParts !! 3
+--           features = FeaturesString $ lineParts !! 4
 
 -- | Convert a training instance to a `B.ByteString`.
 trainingInstanceToBs :: TrainingInstance -> B.ByteString
-trainingInstanceToBs (TrainingInstance instType keyBS nBS sc fvals) =
+trainingInstanceToBs (TrainingInstance instType keyBS n sc fvals) =
     B.intercalate fieldSep [typeBS, keyBS, nBS, scoreBS, fValsBS]
     where typeBS = typeToBS instType
-          scoreBS = BU.fromString $ printf "%f" sc
+          nBS = BU.fromString $ printf "%d" n
+          scoreBS = B.concat $ BL.toChunks $ SB.show sc
           fValsBS = featuresToBs fvals
           fieldSep = BU.fromString "#"
-
-instanceFieldSep :: GHC.Word.Word8
-instanceFieldSep = c2w '#'
-
-bsToType :: B.ByteString -> TrainingInstanceType
-bsToType bs
-    | bs == parseMarker = ParsingInstance
-    | bs == generationMarker = GenerationInstance
-    | otherwise = error "Unknown marker."
 
 typeToBS :: TrainingInstanceType -> B.ByteString
 typeToBS ParsingInstance = parseMarker
@@ -150,6 +149,58 @@ featuresToBs (FeaturesList l)   = B.intercalate fieldSep $ map toBs l
           fieldSep = BU.fromString "|" 
           fValSep  = BU.fromString "@"
 
+trainType :: A.Parser TrainingInstanceType
+trainType = do
+  ch <- A.satisfy typeChar
+  return $ case ch of
+    0x50 -> ParsingInstance
+    _    -> GenerationInstance
+  where
+    typeChar c = c == 0x47 || c == 0x50
+
+identifier :: A.Parser B.ByteString
+identifier = A.takeWhile1 (not . isSeparator)
+
+isSeparator :: Word8 -> Bool
+isSeparator = (== 0x23)
+
+separator :: A.Parser Word8
+separator = A.satisfy isSeparator
+
+isFeatureSeparator :: Word8 -> Bool
+isFeatureSeparator = (== 0x7c)
+
+featureSeparator :: A.Parser Word8
+featureSeparator = A.satisfy isFeatureSeparator
+
+featureValue :: A.Parser FeatureValue
+featureValue = do
+  value   <- AC.rational
+  _       <- A.satisfy valSep
+  feature <- A.takeWhile1 (not . isFeatureSeparator)
+  return $ FeatureValue feature value
+  where
+    valSep c = c == 0x40
+
+features :: A.Parser Features
+features =
+  FeaturesList `fmap` (featureValue `sepBy` featureSeparator)
+
+trainingInstance :: A.Parser TrainingInstance
+trainingInstance = do
+  tt    <- trainType
+  _     <- separator
+  key   <- identifier
+  _     <- separator
+  n     <- AC.decimal
+  _     <- separator
+  score <- AC.rational
+  _     <- separator
+  fs    <- features
+  return $ TrainingInstance tt key n score fs
+
+
+
 -- |
 -- Filter features by exact names. A modifier function can be applied,
 -- for instance, the `not` function would exclude the specified features.
@@ -158,7 +209,7 @@ filterFeatures :: (Bool -> Bool) -> Set.Set B.ByteString -> TrainingInstance ->
 filterFeatures f keepFeatures i =
     i { instanceFeatures = FeaturesList $ filter keep $
                    parsedFeatures $ instanceFeatures i}
-    where keep = f . flip Set.member keepFeatures . feature
+    where keep = f . flip Set.member keepFeatures . fvFeature
 
 -- |
 -- Filter features by their functor. A modifier function can be applied,
@@ -168,7 +219,7 @@ filterFeaturesFunctor :: (Bool -> Bool) -> Set.Set B.ByteString ->
 filterFeaturesFunctor f keepFeatures i =
     i { instanceFeatures = FeaturesList $ filter keep $ parsedFeatures $
                    instanceFeatures i}
-    where keep = f . flip Set.member keepFeatures . functor . feature
+    where keep = f . flip Set.member keepFeatures . functor . fvFeature
           functor = head . B.split argOpen
           argOpen = c2w '('
 

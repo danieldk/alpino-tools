@@ -20,6 +20,7 @@ import           Prelude hiding (concat)
 import           Control.Exception.Base (Exception)
 import           Control.Monad.Random.Class (MonadRandom(..))
 import qualified Data.Alpino.Model as AM
+import qualified Data.Attoparsec.ByteString as A
 import qualified Data.ByteString as B
 import           Data.Conduit (Conduit)
 import           Data.Conduit.Util (ConduitStateResult(StateProducing),
@@ -100,15 +101,13 @@ scoreToNorm :: Monad m =>
   Conduit [AM.TrainingInstance] m [AM.TrainingInstance]
 scoreToNorm = CL.map AM.scoreToNorm
 
--- XXX: Use proper serialization?
 bsToTrainingInstance :: MonadThrow m => Conduit B.ByteString m AM.TrainingInstance
 bsToTrainingInstance = CL.mapM cvtBS
   where
     cvtBS b =
-      case AM.bsToTrainingInstance b of
-        Just i -> return i
-        Nothing -> monadThrow $
-          InvalidDataException "Could not parse instance."
+      case A.parseOnly AM.trainingInstance b of
+        Left err -> monadThrow $ InvalidDataException err
+        Right i  -> return i
 
 -- XXX: Use some proper serialization here?
 -- | Convert `TrainingInstance`s to `B.ByteString`s.
