@@ -82,24 +82,6 @@ bestScore = foldl (\acc -> max acc . instanceScore) 0.0
 bestScore' :: [TrainingInstance] -> Double
 bestScore' = foldl' (\acc -> max acc . instanceScore) 0.0
 
--- |
--- Read a training instance from a `BU.ByteString`.
---
--- The bytestring is assumed to contain five fields separated by
--- the hash (/#/) character:
---
--- 1. An indicator for the type of training instance (/P/ for parse
---   disambiguation, /G/ for fluency ranking).
---
--- 2. The identifier of the context (usually the identifier of a
---   sentence of logircal form).
---
--- 3. Parse/generation number.
---
--- 4. A quality score for this training instance.
---
--- 5. A list of features and values. List elements are separated by
---   the vertical bar (/|/), and have the following form: /value@feature/
 -- bsToTrainingInstance :: B.ByteString -> Maybe TrainingInstance
 -- bsToTrainingInstance l
 --     | length lineParts /= 5 = Nothing
@@ -186,6 +168,24 @@ features :: A.Parser Features
 features =
   FeaturesList `fmap` (featureValue `sepBy` featureSeparator)
 
+-- |
+-- Parse a training instance.
+--
+-- A training instance is assumed to contain five fields separated by
+-- the hash (/#/) character:
+--
+-- 1. An indicator for the type of training instance (/P/ for parse
+--   disambiguation, /G/ for fluency ranking).
+--
+-- 2. The identifier of the context (usually the identifier of a
+--   sentence of logircal form).
+--
+-- 3. Parse/generation number.
+--
+-- 4. A quality score for this training instance.
+--
+-- 5. A list of features and values. List elements are separated by
+--   the vertical bar (/|/), and have the following form: /value@feature/
 trainingInstance :: A.Parser TrainingInstance
 trainingInstance = do
   tt    <- trainType
