@@ -46,7 +46,6 @@ import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import GHC.Word (Word8)
 import System.Random.Shuffle (shuffleM)
-import Text.Printf (printf)
 import qualified Text.Show.ByteString as SB
 
 -- | A training instance.
@@ -74,6 +73,18 @@ data FeatureValue = FeatureValue {
       fvValue   :: Double
 } deriving (Show, Eq)
 
+fieldSep :: Word8
+fieldSep = 0x7c -- |
+
+fValSep :: Word8
+fValSep  = 0x40 -- @
+
+fieldSepBS :: B.ByteString
+fieldSepBS = B.singleton fieldSep
+
+fValSepBS :: B.ByteString
+fValSepBS = B.singleton fValSep
+
 -- | Find the highest score of a context.
 bestScore :: [TrainingInstance] -> Double
 bestScore = foldl (\acc -> max acc . instanceScore) 0.0
@@ -82,26 +93,16 @@ bestScore = foldl (\acc -> max acc . instanceScore) 0.0
 bestScore' :: [TrainingInstance] -> Double
 bestScore' = foldl' (\acc -> max acc . instanceScore) 0.0
 
--- bsToTrainingInstance :: B.ByteString -> Maybe TrainingInstance
--- bsToTrainingInstance l
---     | length lineParts /= 5 = Nothing
---     | otherwise = Just $ TrainingInstance instType key n score features
---     where lineParts = B.split instanceFieldSep l
---           instType = bsToType $ head lineParts
---           key = lineParts !! 1
---           n = lineParts !! 2
---           score = fst . fromJust . readDouble $ lineParts !! 3
---           features = FeaturesString $ lineParts !! 4
-
 -- | Convert a training instance to a `B.ByteString`.
 trainingInstanceToBs :: TrainingInstance -> B.ByteString
 trainingInstanceToBs (TrainingInstance instType keyBS n sc fvals) =
-    B.intercalate fieldSep [typeBS, keyBS, nBS, scoreBS, fValsBS]
-    where typeBS = typeToBS instType
-          nBS = B.concat $ BL.toChunks $ SB.show n
-          scoreBS = B.concat $ BL.toChunks $ SB.show sc
-          fValsBS = featuresToBs fvals
-          fieldSep = BU.fromString "#"
+    B.concat $ typeBS : fieldSepBS : keyBS : fieldSepBS :
+      nBS ++ [fieldSepBS] ++ scoreBS ++ fieldSepBS : [fValsBS]
+    where
+      typeBS = typeToBS instType
+      nBS = BL.toChunks $ SB.show n
+      scoreBS = BL.toChunks $ SB.show sc
+      fValsBS = featuresToBs fvals
 
 typeToBS :: TrainingInstanceType -> B.ByteString
 typeToBS ParsingInstance = parseMarker
@@ -119,17 +120,14 @@ parsedFeatures (FeaturesList l)   = l
 parsedFeatures (FeaturesString s) = map fVal $ B.split fieldSep s
     where fVal p = FeatureValue f (fst $ fromJust $ readDouble valBs)
               where [valBs, f] = B.split fValSep p
-          fieldSep = c2w '|'
-          fValSep = c2w '@'
 
 -- | Convert features to a bytestring.
 featuresToBs :: Features -> B.ByteString
 featuresToBs (FeaturesString s) = s
-featuresToBs (FeaturesList l)   = B.intercalate fieldSep $ map toBs l
-    where toBs (FeatureValue f val) = B.intercalate fValSep
-                                      [BU.fromString $ printf "%f" val, f]
-          fieldSep = BU.fromString "|" 
-          fValSep  = BU.fromString "@"
+featuresToBs (FeaturesList l)   = B.intercalate fieldSepBS $ map toBs l
+    where
+      toBs (FeatureValue f val) =
+        B.concat $ (BL.toChunks $ SB.show val) ++ [fValSepBS, f]
 
 trainType :: A.Parser TrainingInstanceType
 trainType = do
