@@ -98,7 +98,7 @@ trainingInstanceToBs :: TrainingInstance -> B.ByteString
 trainingInstanceToBs (TrainingInstance instType keyBS n sc fvals) =
     B.intercalate fieldSep [typeBS, keyBS, nBS, scoreBS, fValsBS]
     where typeBS = typeToBS instType
-          nBS = BU.fromString $ printf "%d" n
+          nBS = B.concat $ BL.toChunks $ SB.show n
           scoreBS = B.concat $ BL.toChunks $ SB.show sc
           fValsBS = featuresToBs fvals
           fieldSep = BU.fromString "#"
