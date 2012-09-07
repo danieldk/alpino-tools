@@ -2,7 +2,7 @@
 
 -- |
 -- Module      : Data.Alpino.Model
--- Copyright   : (c) 2010 Daniël de Kok
+-- Copyright   : (c) 2010-2012 Daniël de Kok
 -- License     : Apache 2
 --
 -- Maintainer  : Daniël de Kok <me@danieldk.eu>
@@ -80,11 +80,11 @@ fValSepBS = B.singleton fValSep
 
 -- | Find the highest score of a context.
 bestScore :: [TrainingInstance] -> Double
-bestScore = foldl (\acc -> max acc . instanceScore) 0.0
+bestScore = foldl (\acc -> max acc . instanceScore) 0
 
 -- | Find the highest score of a context (strict).
 bestScore' :: [TrainingInstance] -> Double
-bestScore' = foldl' (\acc -> max acc . instanceScore) 0.0
+bestScore' = foldl' (\acc -> max acc . instanceScore) 0
 
 -- | Convert a training instance to a `B.ByteString`.
 trainingInstanceToBs :: TrainingInstance -> B.ByteString
@@ -212,14 +212,14 @@ randomSample n i
 
 -- |
 -- Convert the quality scores to binary scores. The instances
--- with the highest quality score get score /1.0/, other instances
--- get score /0.0/.
+-- with the highest quality score get score /1/, other instances
+-- get score /0/.
 scoreToBinary :: [TrainingInstance] -> [TrainingInstance]
 scoreToBinary ctx =
-  map (rescoreEvtBinary (bestScore ctx) 1.0) ctx
+  map (rescoreEvtBinary (bestScore ctx) 1) ctx
 
 -- |
--- Divide a score of /1.0/ uniformly over instances with the highest
+-- Divide a score of /1/ uniformly over instances with the highest
 -- quality scores.
 scoreToBinaryNorm :: [TrainingInstance] -> [TrainingInstance]
 scoreToBinaryNorm ctx =
@@ -227,7 +227,7 @@ scoreToBinaryNorm ctx =
   where
     maxScore = bestScore ctx
     numMax = length . filter ((== maxScore) . instanceScore) $ ctx
-    newScore = 1.0 / fromIntegral numMax
+    newScore = 1 / fromIntegral numMax
 
 -- | Normalize scores over all training instances.
 scoreToNorm :: [TrainingInstance] -> [TrainingInstance]
@@ -241,4 +241,4 @@ scoreToNorm ctx =
 rescoreEvtBinary :: Double -> Double -> TrainingInstance -> TrainingInstance
 rescoreEvtBinary maxScore newScore evt
   | instanceScore evt == maxScore = evt { instanceScore = newScore }
-  | otherwise                     = evt { instanceScore = 0.0 }
+  | otherwise                     = evt { instanceScore = 0 }
