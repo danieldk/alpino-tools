@@ -38,11 +38,8 @@ import Data.Attoparsec.Combinator (sepBy)
 import qualified Data.Attoparsec.ByteString.Char8 as AC
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
-import Data.ByteString.Internal (c2w)
-import Data.ByteString.Lex.Double (readDouble)
 import qualified Data.ByteString.UTF8 as BU
 import Data.List (foldl')
-import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import GHC.Word (Word8)
 import System.Random.Shuffle (shuffleM)
@@ -50,27 +47,23 @@ import qualified Text.Show.ByteString as SB
 
 -- | A training instance.
 data TrainingInstance = TrainingInstance {
-      instanceType     :: TrainingInstanceType, -- ^ Type of training instance
-      instanceKey      :: B.ByteString,         -- ^ Training instance identifier
-      instanceN        :: Int,
-      instanceScore    :: Double,               -- ^ Quality score
-      instanceFeatures :: Features              -- ^ Features
+  instanceType     :: TrainingInstanceType, -- ^ Type of training instance
+  instanceKey      :: B.ByteString,         -- ^ Training instance identifier
+  instanceN        :: Int,
+  instanceScore    :: Double,               -- ^ Quality score
+  instanceFeatures :: [FeatureValue]        -- ^ Features
 } deriving (Show, Eq)
 
 -- | Type of training instance (parsing or generation).
-data TrainingInstanceType = ParsingInstance
-                          | GenerationInstance
-    deriving (Show, Eq)
-
--- | Representation of features and values.
-data Features = FeaturesString B.ByteString -- ^ Features as a ByteString.
-              | FeaturesList [FeatureValue] -- ^ Features as a list.
-                deriving (Show, Eq)
+data TrainingInstanceType =
+    ParsingInstance
+  | GenerationInstance
+  deriving (Show, Eq)
 
 -- | A feature and its corresponding value.
 data FeatureValue = FeatureValue {
-      fvFeature :: B.ByteString,
-      fvValue   :: Double
+  fvFeature :: B.ByteString,
+  fvValue   :: Double
 } deriving (Show, Eq)
 
 fieldSep :: Word8
@@ -96,13 +89,13 @@ bestScore' = foldl' (\acc -> max acc . instanceScore) 0.0
 -- | Convert a training instance to a `B.ByteString`.
 trainingInstanceToBs :: TrainingInstance -> B.ByteString
 trainingInstanceToBs (TrainingInstance instType keyBS n sc fvals) =
-    B.concat $ typeBS : fieldSepBS : keyBS : fieldSepBS :
-      nBS ++ [fieldSepBS] ++ scoreBS ++ fieldSepBS : [fValsBS]
-    where
-      typeBS = typeToBS instType
-      nBS = BL.toChunks $ SB.show n
-      scoreBS = BL.toChunks $ SB.show sc
-      fValsBS = featuresToBs fvals
+  B.concat $ typeBS : fieldSepBS : keyBS : fieldSepBS :
+    nBS ++ [fieldSepBS] ++ scoreBS ++ fieldSepBS : [fValsBS]
+  where
+    typeBS  = typeToBS instType
+    nBS     = BL.toChunks $ SB.show n
+    scoreBS = BL.toChunks $ SB.show sc
+    fValsBS = featuresToBs fvals
 
 typeToBS :: TrainingInstanceType -> B.ByteString
 typeToBS ParsingInstance = parseMarker
@@ -114,20 +107,13 @@ parseMarker = BU.fromString "P"
 generationMarker :: BU.ByteString
 generationMarker = BU.fromString "G"
 
--- | Parsed representation of features.
-parsedFeatures :: Features -> [FeatureValue]
-parsedFeatures (FeaturesList l)   = l
-parsedFeatures (FeaturesString s) = map fVal $ B.split fieldSep s
-    where fVal p = FeatureValue f (fst $ fromJust $ readDouble valBs)
-              where [valBs, f] = B.split fValSep p
-
 -- | Convert features to a bytestring.
-featuresToBs :: Features -> B.ByteString
-featuresToBs (FeaturesString s) = s
-featuresToBs (FeaturesList l)   = B.intercalate fieldSepBS $ map toBs l
-    where
-      toBs (FeatureValue f val) =
-        B.concat $ (BL.toChunks $ SB.show val) ++ [fValSepBS, f]
+featuresToBs :: [FeatureValue] -> B.ByteString
+featuresToBs =
+  B.intercalate fieldSepBS . map toBs
+  where
+    toBs (FeatureValue f val) =
+      B.concat $ (BL.toChunks $ SB.show val) ++ [fValSepBS, f]
 
 trainType :: A.Parser TrainingInstanceType
 trainType = do
@@ -162,9 +148,8 @@ featureValue = do
   where
     valSep c = c == 0x40
 
-features :: A.Parser Features
-features =
-  FeaturesList `fmap` (featureValue `sepBy` featureSeparator)
+features :: A.Parser [FeatureValue]
+features = featureValue `sepBy` featureSeparator
 
 -- |
 -- Parse a training instance.
@@ -197,16 +182,13 @@ trainingInstance = do
   fs    <- features
   return $ TrainingInstance tt key n score fs
 
-
-
 -- |
 -- Filter features by exact names. A modifier function can be applied,
 -- for instance, the `not` function would exclude the specified features.
 filterFeatures :: (Bool -> Bool) -> Set.Set B.ByteString -> TrainingInstance ->
                   TrainingInstance
 filterFeatures f keepFeatures i =
-    i { instanceFeatures = FeaturesList $ filter keep $
-                   parsedFeatures $ instanceFeatures i}
+    i { instanceFeatures = filter keep $ instanceFeatures i}
     where keep = f . flip Set.member keepFeatures . fvFeature
 
 -- |
@@ -215,11 +197,11 @@ filterFeatures f keepFeatures i =
 filterFeaturesFunctor :: (Bool -> Bool) -> Set.Set B.ByteString ->
                          TrainingInstance -> TrainingInstance
 filterFeaturesFunctor f keepFeatures i =
-    i { instanceFeatures = FeaturesList $ filter keep $ parsedFeatures $
-                   instanceFeatures i}
-    where keep = f . flip Set.member keepFeatures . functor . fvFeature
-          functor = head . B.split argOpen
-          argOpen = c2w '('
+  i { instanceFeatures = filter keep $ instanceFeatures i}
+  where
+    keep = f . flip Set.member keepFeatures . functor . fvFeature
+    functor = head . B.split argOpen
+    argOpen = 0x28
 
 -- | Extract a random sample from a list of instances.
 randomSample :: MonadRandom m => Int -> [TrainingInstance] ->
@@ -233,28 +215,30 @@ randomSample n i
 -- with the highest quality score get score /1.0/, other instances
 -- get score /0.0/.
 scoreToBinary :: [TrainingInstance] -> [TrainingInstance]
-scoreToBinary ctx = map (rescoreEvt maxScore) ctx
-    where maxScore = bestScore ctx
-          rescoreEvt maxS evt
-            | instanceScore evt == maxS = evt { instanceScore = 1.0 }
-            | otherwise = evt { instanceScore = 0.0 }
+scoreToBinary ctx =
+  map (rescoreEvtBinary (bestScore ctx) 1.0) ctx
 
 -- |
 -- Divide a score of /1.0/ uniformly over instances with the highest
 -- quality scores.
 scoreToBinaryNorm :: [TrainingInstance] -> [TrainingInstance]
-scoreToBinaryNorm ctx = map (rescoreEvt maxScore) ctx
-    where maxScore = bestScore ctx
-          numMax = length . filter (\e -> instanceScore e == maxScore) $ ctx
-          correctScore = 1.0 / fromIntegral numMax
-          rescoreEvt maxS evt
-            | instanceScore evt == maxS =
-                evt { instanceScore = correctScore }
-            | otherwise = evt { instanceScore = 0.0 }
+scoreToBinaryNorm ctx =
+  map (rescoreEvtBinary maxScore newScore) ctx
+  where
+    maxScore = bestScore ctx
+    numMax = length . filter ((== maxScore) . instanceScore) $ ctx
+    newScore = 1.0 / fromIntegral numMax
 
 -- | Normalize scores over all training instances.
 scoreToNorm :: [TrainingInstance] -> [TrainingInstance]
-scoreToNorm ctx = map (rescoreEvt norm) ctx
-    where norm = sum $ map instanceScore ctx
-          rescoreEvt n evt =
-              evt { instanceScore = instanceScore evt / n }
+scoreToNorm ctx =
+  map (rescoreEvt norm) ctx
+  where
+    norm = sum $ map instanceScore ctx
+    rescoreEvt n evt = evt { instanceScore = instanceScore evt / n }
+
+
+rescoreEvtBinary :: Double -> Double -> TrainingInstance -> TrainingInstance
+rescoreEvtBinary maxScore newScore evt
+  | instanceScore evt == maxScore = evt { instanceScore = newScore }
+  | otherwise                     = evt { instanceScore = 0.0 }
