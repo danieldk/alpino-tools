@@ -67,10 +67,10 @@ data FeatureValue = FeatureValue {
 } deriving (Show, Eq)
 
 fieldSep :: Word8
-fieldSep = 0x7c -- |
+fieldSep = 0x7c -- '|' 
 
 fValSep :: Word8
-fValSep  = 0x40 -- @
+fValSep  = 0x40 -- '@'
 
 fieldSepBS :: B.ByteString
 fieldSepBS = B.singleton fieldSep
