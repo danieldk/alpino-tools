@@ -5,9 +5,8 @@ import Prelude hiding (concat)
 import Control.Monad (unless)
 import Control.Monad.Random (MonadRandom(..))
 import Control.Monad.Trans (lift)
-import Control.Monad.Trans.Resource (ResourceT)
 import Data.Alpino.Model.Conduit
-import Data.Conduit (($=), ($$), runResourceT)
+import Data.Conduit (($=), ($$), ResourceT, runResourceT)
 import qualified Data.Conduit.Binary as CB
 import qualified Data.List as L
 import System.Console.GetOpt

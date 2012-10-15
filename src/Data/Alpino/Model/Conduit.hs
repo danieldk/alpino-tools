@@ -22,13 +22,12 @@ import           Control.Monad.Random.Class (MonadRandom(..))
 import qualified Data.Alpino.Model as AM
 import qualified Data.Attoparsec.ByteString as A
 import qualified Data.ByteString as B
-import           Data.Conduit (Conduit)
+import           Data.Conduit (Conduit, MonadThrow(..))
 import           Data.Conduit.Util (ConduitStateResult(StateProducing),
                                     conduitState)
 import qualified Data.Conduit.List as CL
 import qualified Data.Set as Set
 import Data.Typeable
-import Control.Monad.Trans.Resource (MonadThrow (..))
 
 data InvalidDataException = InvalidDataException String
   deriving Typeable
